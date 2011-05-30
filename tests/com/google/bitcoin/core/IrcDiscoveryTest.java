@@ -18,6 +18,8 @@ package com.google.bitcoin.core;
 
 import static org.junit.Assert.*;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -34,7 +36,7 @@ public class IrcDiscoveryTest {
         // Test some random addresses grabbed from the channel.
         String[] userList = new String[]{ "x201500200","u4stwEBjT6FYyVV", "u5BKEqDApa8SbA7"};
         
-        ArrayList<InetSocketAddress> addresses = IrcDiscovery.parseUserList(userList);
+        ArrayList<InetSocketAddress> addresses = IrcDiscovery_parseUserList(userList);
         
         // Make sure the "x" address is excluded.
         assertEquals("Too many addresses.", 2, addresses.size());
@@ -46,6 +48,21 @@ public class IrcDiscoveryTest {
             String formattedIP = decoded[0].getAddress().getHostAddress() + ":" + ((Integer)decoded[i].getPort()).toString();
             assertEquals("IPs decoded improperly", ips[0], formattedIP);
         }        
+    }
+    
+    public ArrayList<InetSocketAddress> IrcDiscovery_parseUserList(String[] args) {
+    	Method m;
+		try {
+			m = IrcDiscovery.class.getDeclaredMethod("parseUserList", String[].class);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+    	m.setAccessible(true);
+    	try {
+			return (ArrayList<InetSocketAddress>) m.invoke(null, args);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
     }
 
 }
