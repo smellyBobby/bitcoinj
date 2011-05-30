@@ -24,6 +24,8 @@ import java.util.ArrayList;
 
 import org.junit.Test;
 
+import com.google.bitcoin.network.peerdiscovery.IrcDiscovery;
+
 public class IrcDiscoveryTest {
     // TODO: Inject a mock IRC server and more thoroughly exercise this class.
 
