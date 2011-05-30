@@ -150,4 +150,8 @@ public class NetworkParameters implements Serializable {
         n.targetTimespan = 200000000;  // 6 years. Just a very big number.
         return n;
     }
+
+	public int getPort() {
+		return port;
+	}
 }
