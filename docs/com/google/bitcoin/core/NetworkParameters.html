@@ -35,7 +35,8 @@ function windowTitle()
 <A NAME="navbar_top_firstrow"><!-- --></A>
 <TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" SUMMARY="">
   <TR ALIGN="center" VALIGN="top">
-  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="../../../../com/google/bitcoin/core/package-summary.html"><FONT CLASS="NavBarFont1"><B>Package</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="../../../../overview-summary.html"><FONT CLASS="NavBarFont1"><B>Overview</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="package-summary.html"><FONT CLASS="NavBarFont1"><B>Package</B></FONT></A>&nbsp;</TD>
   <TD BGCOLOR="#FFFFFF" CLASS="NavBarCell1Rev"> &nbsp;<FONT CLASS="NavBarFont1Rev"><B>Class</B></FONT>&nbsp;</TD>
   <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="package-tree.html"><FONT CLASS="NavBarFont1"><B>Tree</B></FONT></A>&nbsp;</TD>
   <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="../../../../deprecated-list.html"><FONT CLASS="NavBarFont1"><B>Deprecated</B></FONT></A>&nbsp;</TD>
@@ -122,11 +123,19 @@ NetworkParameters contains the data needed for working with an instantiation of 
 </TR>
 <TR BGCOLOR="white" CLASS="TableRowColor">
 <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
-<CODE>&nbsp;byte</CODE></FONT></TD>
+<CODE>&nbsp;int</CODE></FONT></TD>
 <TD><CODE><B><A HREF="../../../../com/google/bitcoin/core/NetworkParameters.html#addressHeader">addressHeader</A></B></CODE>
 
 <BR>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;First byte of a base58 encoded address.</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B><A HREF="../../../../com/google/bitcoin/core/NetworkParameters.html#dumpedPrivateKeyHeader">dumpedPrivateKeyHeader</A></B></CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;First byte of a base58 encoded dumped private key.</TD>
 </TR>
 <TR BGCOLOR="white" CLASS="TableRowColor">
 <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
@@ -209,6 +218,14 @@ NetworkParameters contains the data needed for working with an instantiation of 
 <TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
 <TH ALIGN="left" COLSPAN="2"><FONT SIZE="+2">
 <B>Method Summary</B></FONT></TH>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B><A HREF="../../../../com/google/bitcoin/core/NetworkParameters.html#getPort()">getPort</A></B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
 </TR>
 <TR BGCOLOR="white" CLASS="TableRowColor">
 <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
@@ -320,9 +337,21 @@ public long <B>packetMagic</B></PRE>
 <A NAME="addressHeader"><!-- --></A><H3>
 addressHeader</H3>
 <PRE>
-public byte <B>addressHeader</B></PRE>
+public int <B>addressHeader</B></PRE>
 <DL>
-<DD>First byte of a base58 encoded address.
+<DD>First byte of a base58 encoded address. See <A HREF="../../../../com/google/bitcoin/core/Address.html" title="class in com.google.bitcoin.core"><CODE>Address</CODE></A>
+<P>
+<DL>
+</DL>
+</DL>
+<HR>
+
+<A NAME="dumpedPrivateKeyHeader"><!-- --></A><H3>
+dumpedPrivateKeyHeader</H3>
+<PRE>
+public int <B>dumpedPrivateKeyHeader</B></PRE>
+<DL>
+<DD>First byte of a base58 encoded dumped private key. See <A HREF="../../../../com/google/bitcoin/core/DumpedPrivateKey.html" title="class in com.google.bitcoin.core"><CODE>DumpedPrivateKey</CODE></A>.
 <P>
 <DL>
 </DL>
@@ -411,6 +440,20 @@ public static <A HREF="../../../../com/google/bitcoin/core/NetworkParameters.htm
 </DL>
 </DD>
 </DL>
+<HR>
+
+<A NAME="getPort()"><!-- --></A><H3>
+getPort</H3>
+<PRE>
+public int <B>getPort</B>()</PRE>
+<DL>
+<DD><DL>
+</DL>
+</DD>
+<DD><DL>
+</DL>
+</DD>
+</DL>
 <!-- ========= END OF CLASS DATA ========= -->
 <HR>
 
@@ -424,7 +467,8 @@ public static <A HREF="../../../../com/google/bitcoin/core/NetworkParameters.htm
 <A NAME="navbar_bottom_firstrow"><!-- --></A>
 <TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" SUMMARY="">
   <TR ALIGN="center" VALIGN="top">
-  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="../../../../com/google/bitcoin/core/package-summary.html"><FONT CLASS="NavBarFont1"><B>Package</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="../../../../overview-summary.html"><FONT CLASS="NavBarFont1"><B>Overview</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="package-summary.html"><FONT CLASS="NavBarFont1"><B>Package</B></FONT></A>&nbsp;</TD>
   <TD BGCOLOR="#FFFFFF" CLASS="NavBarCell1Rev"> &nbsp;<FONT CLASS="NavBarFont1Rev"><B>Class</B></FONT>&nbsp;</TD>
   <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="package-tree.html"><FONT CLASS="NavBarFont1"><B>Tree</B></FONT></A>&nbsp;</TD>
   <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="../../../../deprecated-list.html"><FONT CLASS="NavBarFont1"><B>Deprecated</B></FONT></A>&nbsp;</TD>
