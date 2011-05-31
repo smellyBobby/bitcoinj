@@ -16,6 +16,7 @@
 
 package com.google.bitcoin.examples;
 
+import com.google.bitcoin.blockstore.MemoryBlockStore;
 import com.google.bitcoin.core.*;
 
 import java.math.BigInteger;

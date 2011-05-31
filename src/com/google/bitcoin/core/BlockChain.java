@@ -22,6 +22,11 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.bitcoin.blockstore.BlockStore;
+import com.google.bitcoin.blockstore.BlockStoreException;
+import com.google.bitcoin.blockstore.DiskBlockStore;
+import com.google.bitcoin.blockstore.MemoryBlockStore;
+
 /**
  * A BlockChain holds a series of {@link Block} objects, links them together, and knows how to verify that the
  * chain follows the rules of the {@link NetworkParameters} for this chain.<p>

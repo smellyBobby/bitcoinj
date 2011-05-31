@@ -16,6 +16,8 @@
 
 package com.google.bitcoin.examples;
 
+import com.google.bitcoin.blockstore.BlockStore;
+import com.google.bitcoin.blockstore.DiskBlockStore;
 import com.google.bitcoin.core.*;
 
 import java.io.File;

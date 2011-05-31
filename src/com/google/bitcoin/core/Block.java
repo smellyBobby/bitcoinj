@@ -25,6 +25,7 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 import static com.google.bitcoin.core.Utils.*;
 
 /**
@@ -63,7 +64,7 @@ public class Block extends Message {
     private transient byte[] hash;
 
     /** Special case constructor, used for the genesis node and unit tests. */
-    Block(NetworkParameters params) {
+    public Block(NetworkParameters params) {
         super(params);
         // Set up a few basic things. We are not complete after this though.
         version = 1;
@@ -77,6 +78,21 @@ public class Block extends Message {
         super(params, payloadBytes, 0);
     }
 
+    /** Constructs a block object from the deserialization format */
+    public Block(
+    		NetworkParameters params,
+    		byte[] prevH,int version,byte[] merkleRoot,
+    		int time, int difficultyTarget, int nonce, byte[] hash){
+    	super(params);
+    
+    	this.prevBlockHash = prevH;
+    	this.version = version;
+    	this.merkleRoot = merkleRoot;
+    	this.time = time;
+    	this.difficultyTarget = difficultyTarget;
+    	this.nonce = nonce;
+    	this.hash = hash;
+    }
     void parse() throws ProtocolException {
         version = readUint32();
         prevBlockHash = readHash();
@@ -373,13 +389,13 @@ public class Block extends Message {
     }
 
     /** Exists only for unit testing. */
-    void setMerkleRoot(byte[] value) {
+    public void setMerkleRoot(byte[] value) {
         merkleRoot = value;
         hash = null;
     }
 
     /** Adds a transaction to this block. */
-    void addTransaction(Transaction t) {
+    protected void addTransaction(Transaction t) {
         if (transactions == null) {
             transactions = new ArrayList<Transaction>();
         }
@@ -409,7 +425,7 @@ public class Block extends Message {
         return time;
     }
 
-    void setTime(long time) {
+    protected void setTime(long time) {
         this.time = time;
         this.hash = null;
     }
@@ -423,7 +439,7 @@ public class Block extends Message {
         return difficultyTarget;
     }
 
-    void setDifficultyTarget(long compactForm) {
+    protected void setDifficultyTarget(long compactForm) {
         this.difficultyTarget = compactForm;
         this.hash = null;
     }
@@ -436,7 +452,7 @@ public class Block extends Message {
         return nonce;
     }
 
-    void setNonce(long nonce) {
+    protected void setNonce(long nonce) {
         this.nonce = nonce;
         this.hash = null;
     }
@@ -479,5 +495,31 @@ public class Block extends Message {
 
     Block createNextBlock(Address to) {
         return createNextBlock(to, System.currentTimeMillis() / 1000);
+    }
+
+	public Sha256Hash getPrevShaHash() {
+		return sha256Hash(prevBlockHash);
+	}
+
+	public Sha256Hash getShaHash() {
+		return sha256Hash(getHash());
+	}
+
+	/**
+	 * Used to set previous block hash without invoking the need to recalculate 
+	 * this.hash. Is intended to be used when loading a Block from storage.
+	 * 
+	 * @param previousHash - previous hash of this block.
+	 */
+	public void setPrevHash(byte[] hash) {
+		prevBlockHash = hash;
+	}
+
+	public void setHash(byte[] hash) {
+		this.hash = hash;
+	}
+	protected void setTransactions(List<Transaction> transactions) {
+        this.transactions = transactions;
+        
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.bitcoin.core;
+package com.google.bitcoin.blockstore;
 
 /**
  * Thrown when something goes wrong with storing a block. Examples: out of disk space.

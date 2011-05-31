@@ -19,6 +19,8 @@ package com.google.bitcoin.core;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.bitcoin.blockstore.MemoryBlockStore;
+
 import java.math.BigInteger;
 
 import static org.junit.Assert.assertEquals;

@@ -356,7 +356,7 @@ public class Script {
     ////////////////////// Interface for writing scripts from scratch ////////////////////////////////
 
     /** Writes out the given byte buffer to the output stream with the correct opcode prefix */
-    static void writeBytes(OutputStream os,  byte[] buf) throws IOException {
+    public static void writeBytes(OutputStream os,  byte[] buf) throws IOException {
         if (buf.length < OP_PUSHDATA1) {
             os.write(buf.length);
             os.write(buf);

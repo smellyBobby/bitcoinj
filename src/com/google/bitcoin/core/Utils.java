@@ -238,4 +238,22 @@ public class Utils {
         if (size >= 3) bytes[6] = (byte) ((compact >>  0) & 0xFF);
         return decodeMPI(bytes);
     }
+    
+    public static Sha256Hash sha256Hash(byte[] hash){
+    	return new Sha256Hash(hash);
+    }
+    
+    public static int byteArrayBEToInt(byte[] arr,int offset){
+    	return (arr[offset] << 24)
+        + ((arr[1+offset] & 0xFF) << 16)
+        + ((arr[offset+2] & 0xFF) << 8)
+        + (arr[offset+3] & 0xFF);
+    }
+    public static int byteArrayBEToInt(byte[] arr){
+    	return byteArrayBEToInt(arr,0);
+    }
+    
+	public static void println(Object ob){
+		System.out.println(ob);
+	}
 }

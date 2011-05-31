@@ -19,6 +19,9 @@ package com.google.bitcoin.core;
 import java.io.Serializable;
 import java.math.BigInteger;
 
+import com.google.bitcoin.blockstore.BlockStore;
+import com.google.bitcoin.blockstore.BlockStoreException;
+
 /**
  * Wraps a {@link Block} object with extra data that can be derived from the block chain but is slow or inconvenient to
  * calculate. By storing it alongside the block header we reduce the amount of work required significantly.
@@ -109,4 +112,24 @@ public class StoredBlock implements Serializable {
     public String toString() {
         return "Block at height " + getHeight() + ": " + getHeader().toString();
     }
+
+
+	public byte[] getHeaderHash() {
+		return header.getHash();
+	}
+
+
+	public byte[] getPrevByteHash() {
+		return header.getPrevBlockHash();
+	}
+
+
+	public Sha256Hash getPrevShaHash() {
+		return header.getPrevShaHash();
+	}
+
+
+	public Sha256Hash getShaHash() {
+		return header.getShaHash();
+	}
 }

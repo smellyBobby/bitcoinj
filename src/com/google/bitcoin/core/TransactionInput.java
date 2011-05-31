@@ -48,7 +48,7 @@ public class TransactionInput extends Message implements Serializable {
     Transaction parentTransaction;
 
     /** Used only in creation of the genesis block. */
-    TransactionInput(NetworkParameters params, Transaction parentTransaction, byte[] scriptBytes) {
+    public TransactionInput(NetworkParameters params, Transaction parentTransaction, byte[] scriptBytes) {
         super(params);
         this.scriptBytes = scriptBytes;
         this.outpoint = new TransactionOutPoint(params, -1, null);

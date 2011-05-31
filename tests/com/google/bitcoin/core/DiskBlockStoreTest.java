@@ -16,6 +16,9 @@
 package com.google.bitcoin.core;
 
 import org.junit.Test;
+
+import com.google.bitcoin.blockstore.DiskBlockStore;
+
 import java.io.File;
 import static org.junit.Assert.assertEquals;
 

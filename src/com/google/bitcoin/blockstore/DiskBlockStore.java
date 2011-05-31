@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.bitcoin.core;
+package com.google.bitcoin.blockstore;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -23,6 +23,14 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.bitcoin.core.Block;
+import com.google.bitcoin.core.NetworkParameters;
+import com.google.bitcoin.core.ProtocolException;
+import com.google.bitcoin.core.Sha256Hash;
+import com.google.bitcoin.core.StoredBlock;
+import com.google.bitcoin.core.Utils;
+import com.google.bitcoin.core.VerificationException;
 
 /**
  * Stores the block chain to disk but still holds it in memory. This is intended for desktop apps and tests.

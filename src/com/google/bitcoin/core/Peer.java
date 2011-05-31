@@ -26,6 +26,7 @@ import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * A Peer handles the high level communication with a BitCoin node. It requires a NetworkConnection to be set up for
  * it. After that it takes ownership of the connection, creates and manages its own thread used for communication

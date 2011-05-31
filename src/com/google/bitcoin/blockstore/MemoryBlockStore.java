@@ -14,12 +14,17 @@
  * limitations under the License.
  */
 
-package com.google.bitcoin.core;
+package com.google.bitcoin.blockstore;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.google.bitcoin.core.Block;
+import com.google.bitcoin.core.NetworkParameters;
+import com.google.bitcoin.core.StoredBlock;
+import com.google.bitcoin.core.VerificationException;
 
 /**
  * Keeps {@link StoredBlock}s in memory. Used primarily for unit testing.
