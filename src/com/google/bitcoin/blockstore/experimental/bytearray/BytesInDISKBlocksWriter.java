@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,11 +18,11 @@ import com.google.bitcoin.genesis.GenesisBlock;
  * This class is intended to be used during the initial
  * block-chain download. It is responsible for writing
  * StoredBlocks to disk, in a format that is recognised
- * by {@link QueryDisk}.
+ * by {@link BytesInDISKBlocks}.
  * @author Micheal Swiggs
  *
  */
-public class ByteWriteDiskStore {
+public class BytesInDISKBlocksWriter {
     static Logger logger = Logger.getLogger("ByteWriteDiskStore");
 	public static int BUFFER_SIZE = 92200;
 	public static int BLOCK_SIZE = StoredBlocksMethods.BLOCK_SIZE;
@@ -30,17 +30,22 @@ public class ByteWriteDiskStore {
 	Block previousBlock;
 	StoredBlockSerializer storedBlockSerializer;
 	File storageFile;
-	FileOutputStream outputStream;
+	RandomAccessFile randomAccessFile;
+	byte[] initialPrevHash;
+	
 	byte[] fileBuffer = new byte[BUFFER_SIZE];
 	int bufferIndex = 0;
 	
-	public ByteWriteDiskStore(GenesisBlock genesisBlock,
+	public BytesInDISKBlocksWriter(
+	        GenesisBlock genesisBlock,
 			StoredBlockSerializer storedBlockSerializer,
 			File file) throws IOException{
 		this.previousBlock = genesisBlock;
 		this.storedBlockSerializer = storedBlockSerializer;
 		this.storageFile = file;
-		outputStream = new FileOutputStream(file);
+		this.initialPrevHash = genesisBlock.getHash();
+		
+		randomAccessFile = new RandomAccessFile(file,"rw");
 	}
 	/**
 	 * Call this to add another block to disk. Will 
@@ -60,11 +65,10 @@ public class ByteWriteDiskStore {
 	 */
 	public void persist(){
 		try {
-			outputStream.write(fileBuffer,0,bufferIndex);
-			outputStream.flush();
+			randomAccessFile.write(fileBuffer,0,bufferIndex);
 			bufferIndex = 0;
 		} catch (IOException e) {
-			throw new ByteDiskStoreException(e);
+			throw new ByteBlockStoreException(e);
 		}
 		
 	}
@@ -120,20 +124,46 @@ public class ByteWriteDiskStore {
 		bufferIndex+=buff.length;
 	}
 	
+	/**
+	 * This will return the bytes of the block at num(height).
+	 * 
+	 * @param height - The height of the needed block
+	 * @return - byte representation of the StoredBlock.
+	 */
+	public byte[] getBlockBytes(int height){
+	    try {
+            return _getBlockBytes(height);
+        } catch (IOException e) {
+            throw new ByteBlockStoreException(e);
+        }
+	}
+	private byte[] _getBlockBytes(int height) throws IOException{
+        
+        byte[] result = new byte[BLOCK_SIZE+32];
+        if(height!=0){
+            randomAccessFile.seek((height*BLOCK_SIZE)-32);
+            randomAccessFile.read(result);
+        }else{
+            randomAccessFile.seek(0);
+            randomAccessFile.read(result,32,BLOCK_SIZE);
+            System.arraycopy(initialPrevHash, 0, result, 0, 32);
+        }
+        return result;
+    }
+
 	private void checkByteArrayCapacity() {
 		if(bufferIndex<(BUFFER_SIZE-200))return;
 		try {
-			outputStream.write(fileBuffer,0,bufferIndex);
-			outputStream.flush();
+			randomAccessFile.write(fileBuffer,0,bufferIndex);
 			bufferIndex=0;
 		} catch (IOException e) {
-			throw new ByteDiskStoreException(e);
+			throw new ByteBlockStoreException(e);
 		}
 	}
 	
 	private void validateBlock(StoredBlock block){
 		if(!block.getPrevShaHash().equals(previousBlock.getShaHash())){
-		   throw new ByteDiskStoreException("Previous hash mismatch");
+		   throw new ByteBlockStoreException("Previous hash mismatch");
 		}
 		previousBlock = block.getHeader();
 	}

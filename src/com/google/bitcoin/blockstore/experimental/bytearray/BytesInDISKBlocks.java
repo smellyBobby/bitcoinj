@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 
 import java.io.File;
@@ -19,7 +19,7 @@ import com.google.bitcoin.core.StoredBlock;
  * @author Micheal Swiggs
  *
  */
-public class QueryDisk {
+public class BytesInDISKBlocks {
 
 	public static int BLOCK_SIZE = StoredBlocksMethods.BLOCK_SIZE;
 	
@@ -33,7 +33,9 @@ public class QueryDisk {
 	 * Named("QueryDisk") File 
 	 * BlockFactory 
 	 */
-	public QueryDisk(File queryFile,StoredBlockSerializer storedBlockSerializer) throws IOException{
+	public BytesInDISKBlocks(
+	        File queryFile,
+	        StoredBlockSerializer storedBlockSerializer) throws IOException{
 		this.queryFile = queryFile;
 		randAccessFile = new RandomAccessFile(queryFile,"rw");
 		
@@ -87,7 +89,7 @@ public class QueryDisk {
 			initialPrevHash = storedBlock.getHeaderHash();
 			return;
 		}
-		throw new MemoryBlocksException("Previous hash mismatch");
+		throw new ByteBlockStoreException("Previous hash mismatch");
 		
 	}
 

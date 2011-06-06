@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 import static com.google.bitcoin.core.Utils.*;
 

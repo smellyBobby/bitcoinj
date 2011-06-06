@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 import static com.google.bitcoin.core.Utils.*;
 import static com.bitcoin.core.test.support.Support.*;
@@ -13,17 +13,18 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import com.google.bitcoin.blockstore.experimental.bytearray.BytesInDISKBlocks;
 import com.google.bitcoin.core.Block;
 import com.google.bitcoin.core.StoredBlock;
 
-public class TEST_QueryDisk {
+public class TEST_BytesInDISKBlocks {
     public static interface T_QueryDisk{};
 	
-	QueryDisk queryDisk;
+	BytesInDISKBlocks queryDisk;
 	
 	@Before
 	public void beforeTest() throws IOException{
-	    queryDisk = new QueryDisk(blankQueryDiskFile(), storedBlockSerializer());
+	    queryDisk = new BytesInDISKBlocks(blankQueryDiskFile(), storedBlockSerializer());
 	}
 	
 	@Category(T_QueryDisk.class)
@@ -52,7 +53,7 @@ public class TEST_QueryDisk {
 	}
     
     @Category(T_QueryDisk.class)
-    @Test(expected=MemoryBlocksException.class)
+    @Test(expected=ByteBlockStoreException.class)
 	public void invalidPrevHash() throws Exception{
 		StoredBlock storedBlock = generateBlock(2);
 		queryDisk.setInitialPrevHash(storedBlock.getHeaderHash());

@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 import static com.bitcoin.core.test.support.Support.*;
 import static com.google.bitcoin.core.Utils.*;
@@ -15,13 +15,14 @@ import org.junit.experimental.categories.Category;
 
 
 
+import com.google.bitcoin.blockstore.experimental.bytearray.BytesInRAMBlocks;
 import com.google.bitcoin.core.Block;
 import com.google.bitcoin.core.StoredBlock;
 
-public class TEST_StoredBlocksInByteArray {
+public class TEST_BytesINRAMBlocks {
     public static interface T_StoredBlocksInByteArray{};
     
-	MemoryBytesStoredBlocks blocksInByteArray;
+	BytesInRAMBlocks blocksInByteArray;
 	
 	@Category(T_StoredBlocksInByteArray.class)
 	@Test
@@ -63,22 +64,23 @@ public class TEST_StoredBlocksInByteArray {
 	}
 	
 	@Category(T_StoredBlocksInByteArray.class)
-    @Test(expected=MemoryBlocksException.class)
+    @Test(expected=ByteBlockStoreException.class)
 	public void invalidPrevHash() throws Exception{
 		StoredBlock storedBlock = generateBlock(1);
 		blocksInByteArray.putWithPrevHashCheck(storedBlock, 0);
 	}
 	
 	@Category(T_StoredBlocksInByteArray.class)
-    @Test(expected=MemoryBlocksException.class)
+    @Test(expected=ByteBlockStoreException.class)
 	public void putInvalidPositionA() throws Exception{
 		blocksInByteArray.putWithoutPrevHashCheck(null, -1);
 	}
 	
 	@Category(T_StoredBlocksInByteArray.class)
-    @Test(expected=MemoryBlocksException.class)
+    @Test(expected=NullPointerException.class)
 	public void putInvalidPositionB() throws Exception{
-		blocksInByteArray.putWithoutPrevHashCheck(null, MemoryBytesStoredBlocks.N_BLOCKS_STORED);
+		blocksInByteArray.putWithoutPrevHashCheck(
+		        null, BytesInRAMBlocks.N_BLOCKS_STORED);
 	}
 	
 	@Category(T_StoredBlocksInByteArray.class)
@@ -87,8 +89,6 @@ public class TEST_StoredBlocksInByteArray {
 		StoredBlock temp = generateBlock(-1);
 		blocksInByteArray.setInitialPrevHash(temp.getPrevByteHash());
 		blocksInByteArray.putWithPrevHashCheck(temp, 0);
-		println(bytesToHexString(temp.getHeaderHash()));
-		println(bytesToHexString(blocksInByteArray.getPreviousHash(1)));
 		assertThat(Arrays.equals(blocksInByteArray.getPreviousHash(1),temp.getHeaderHash()),
 				equalTo(true));
 	}
@@ -129,7 +129,7 @@ public class TEST_StoredBlocksInByteArray {
 	@Before
 	public void beforeTest(){
 	    
-	    blocksInByteArray = new MemoryBytesStoredBlocks(storedBlockSerializer());
+	    blocksInByteArray = new BytesInRAMBlocks(storedBlockSerializer());
 	}
 	public static StoredBlock generateBlock(StoredBlock previous,int i){
 		BigInteger dec = BigInteger.valueOf(i);

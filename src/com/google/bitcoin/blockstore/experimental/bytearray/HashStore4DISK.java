@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 /**
  * Responsible for storing a sample of hashes. The hashes
@@ -7,13 +7,13 @@ package com.google.bitcoin.blockstore.experimental;
  * @author Micheal Swiggs
  *
  */
-public class ShouldQueryDisk {
+public class HashStore4DISK {
 
 	public static int N_BYTES = 6;
 	public static int INITIAL_SAMPLE_BYTE = 19;
 	byte[][] hashArray;
 	
-	public ShouldQueryDisk(int nHashes){
+	public HashStore4DISK(int nHashes){
 		hashArray = new byte[nHashes][N_BYTES];
 	}
 	

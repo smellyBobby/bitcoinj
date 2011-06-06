@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 import java.io.IOException;
 
@@ -12,20 +12,20 @@ import com.google.bitcoin.core.StoredBlock;
  * @author Micheal Swiggs
  *
  */
-public class ByteBlockStoreChainDownload {
+public class CoordChainDownload {
 	
 	
 	int chainLength;
 	int memoryIndexOffset;
-	HashStore hashStore;
-	MemoryBytesStoredBlocks memoryStoredBlocks;
-	ByteWriteDiskStore byteDiskStore;
+	HashStore4ALL hashStore;
+	BytesInRAMBlocks memoryStoredBlocks;
+	BytesInDISKBlocksWriter byteDiskStore;
 
 	boolean memoryPrevHashSet = false;
 	
-	public ByteBlockStoreChainDownload(HashStore hashStore,
-			MemoryBytesStoredBlocks memoryStoredBlocks,
-			ByteWriteDiskStore byteDiskStore,
+	public CoordChainDownload(HashStore4ALL hashStore,
+			BytesInRAMBlocks memoryStoredBlocks,
+			BytesInDISKBlocksWriter byteDiskStore,
 			int height){
 		this.hashStore = hashStore;
 		this.memoryStoredBlocks = memoryStoredBlocks;
@@ -39,12 +39,12 @@ public class ByteBlockStoreChainDownload {
 	 */
 	private void setChainLength(int chainLength){
 		this.chainLength = chainLength;
-		memoryIndexOffset = chainLength-MemoryBytesStoredBlocks.N_INITIAL_BLOCKS;
+		memoryIndexOffset = chainLength-BytesInRAMBlocks.N_INITIAL_BLOCKS;
 	}
 	
 	public void putStoredBlock(StoredBlock storedBlock){
 		hashStore.put(storedBlock.getHeaderHash(),storedBlock.getHeight());
-		if(storedBlock.getHeight()>=(chainLength-MemoryBytesStoredBlocks.N_INITIAL_BLOCKS))
+		if(storedBlock.getHeight()>=(chainLength-BytesInRAMBlocks.N_INITIAL_BLOCKS))
 			putInMemory(storedBlock);
 		
 		byteDiskStore.add(storedBlock);
@@ -61,19 +61,37 @@ public class ByteBlockStoreChainDownload {
 		memoryStoredBlocks.load();
 		
 		int diskChainLength = byteDiskStore.getChainLength();
-		int nHashes = hashStore.nRecordedHashes();
-		int length = diskChainLength-nHashes;
+		int nHashesInHashStore = hashStore.nRecordedHashes();
+		int length = diskChainLength-nHashesInHashStore;
 		
 		byte[] hashBuf = new byte[32];
-		println(diskChainLength);
-		println(nHashes);
-		println(length);
-		byte[] hashes = byteDiskStore.getHashes(nHashes,length);
+		byte[] hashes = byteDiskStore.getHashes(nHashesInHashStore,length);
 		for(int i=0;i<length;i++){
 			System.arraycopy(
 				hashes, i*32, hashBuf, 0, 32);
-			hashStore.put(hashBuf, nHashes++);
+			hashStore.put(hashBuf, nHashesInHashStore++);
 		}
+		
+		byte[] firstHashInRAM = memoryStoredBlocks.firstHash();
+		int firstHashPosition = hashStore.getIndexPosition(firstHashInRAM);
+		int expectedFirstHashPosition = chainLength-BytesInRAMBlocks.N_INITIAL_BLOCKS;
+		
+		if(firstHashPosition < expectedFirstHashPosition){
+		    memoryStoredBlocks.shiftBlocksDown(
+		            expectedFirstHashPosition-firstHashPosition
+		            );
+		}else if(firstHashPosition > expectedFirstHashPosition){
+		    memoryStoredBlocks.shiftBlocksUp(
+		            firstHashPosition-expectedFirstHashPosition  );
+		    for(int i=expectedFirstHashPosition;
+		            i<firstHashPosition;i++){
+		        byte[] buf = byteDiskStore.getBlockBytes(i);
+		        
+		        memoryStoredBlocks.putBytesWithHashCheck(buf,
+		                i-memoryIndexOffset);
+		    }
+		}
+		
 		
 		
 	}

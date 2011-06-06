@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 import static com.bitcoin.core.test.support.Support.*;
 import static com.google.bitcoin.core.Utils.*;
@@ -19,6 +19,9 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 
+import com.google.bitcoin.blockstore.experimental.bytearray.ByteBlockStoreException;
+import com.google.bitcoin.blockstore.experimental.bytearray.BytesInDISKBlocksWriter;
+import com.google.bitcoin.blockstore.experimental.bytearray.StoredBlocksMethods;
 import com.google.bitcoin.core.Block;
 import com.google.bitcoin.core.StoredBlock;
 import com.google.bitcoin.genesis.GenesisBlock;
@@ -30,7 +33,7 @@ public class TEST_ByteWriteDiskStore {
 	static Logger logger = Logger.getLogger("TEST_ByteWriteDiskStore");
 	static int BLOCK_SIZE = StoredBlocksMethods.BLOCK_SIZE;
 
-	ByteWriteDiskStore byteWriteDiskStore;
+	BytesInDISKBlocksWriter byteWriteDiskStore;
 
 	Block block;
 	
@@ -61,7 +64,7 @@ public class TEST_ByteWriteDiskStore {
 		byteWriteDiskStore.add(next);
 	}
 	@Category(T_ByteWriteDiskStore.class)
-	@Test(expected=ByteDiskStoreException.class)
+	@Test(expected=ByteBlockStoreException.class)
 	public void invalidPrevHash() throws Exception{
 		StoredBlock next = new StoredBlock(block,BigInteger.ONE,2);
 		next = generateBlock(next,5);
@@ -156,10 +159,10 @@ public class TEST_ByteWriteDiskStore {
 	public void beforeTest() throws IOException{
 	    this.block = new GenesisBlock(null);
 	    this.f = blankQueryDiskFile();
-	    this.byteWriteDiskStore = new ByteWriteDiskStore(
+	    this.byteWriteDiskStore = new BytesInDISKBlocksWriter(
 	            new GenesisBlock(null), storedBlockSerializer(), f);
 	}
-	public static void fillWith(int num,ByteWriteDiskStore bwds,
+	public static void fillWith(int num,BytesInDISKBlocksWriter bwds,
 			Block initialHeader){
 		StoredBlock next = new StoredBlock(initialHeader,BigInteger.ONE,2);
 		next = generateBlock(next,2);

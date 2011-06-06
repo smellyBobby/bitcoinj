@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 import static com.bitcoin.core.test.support.CommonSettings.*;
 import static com.bitcoin.core.test.support.Support.*;
@@ -21,6 +21,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import com.google.bitcoin.blockstore.experimental.bytearray.CoordChainDownload;
+import com.google.bitcoin.blockstore.experimental.bytearray.BytesInDISKBlocksWriter;
+import com.google.bitcoin.blockstore.experimental.bytearray.HashStore4ALL;
+import com.google.bitcoin.blockstore.experimental.bytearray.BytesInRAMBlocks;
+import com.google.bitcoin.blockstore.experimental.bytearray.StoredBlockSerializerImpl;
 import com.google.bitcoin.core.Block;
 import com.google.bitcoin.core.StoredBlock;
 import com.google.bitcoin.genesis.GenesisBlock;
@@ -30,19 +35,19 @@ public class TEST_ByteBlockStoreChainDownload {
 
     static Logger logger = Logger.getLogger("TEST_ByteBlockStoreChainDownload");
 	
-    ByteBlockStoreChainDownload byteBlockStoreChainDownload;
+    CoordChainDownload byteBlockStoreChainDownload;
 	
 	StoredBlockSerializerImpl serializer;
 	
 	Block block;
 	
-	HashStore hashStore;
+	HashStore4ALL hashStore;
 	
-	MemoryBytesStoredBlocks memoryStoredBlocks;
+	BytesInRAMBlocks memoryStoredBlocks;
 	
 	File f;
 	
-	ByteWriteDiskStore bwds;
+	BytesInDISKBlocksWriter bwds;
 	
 	@Category(ByteBlockStoreChainDownload_test.class)
     @Test()
@@ -187,41 +192,52 @@ public class TEST_ByteBlockStoreChainDownload {
 		fillWith(200000,byteBlockStoreChainDownload,block);
 		byteBlockStoreChainDownload.persist();
 		byteBlockStoreChainDownload = null;
-		logger.info(f.length()+" ");
-		ByteBlockStoreChainDownload bbscd = b2();
-		logger.info(f.length()+" ");
+		CoordChainDownload bbscd = b2();
 		bbscd.load();
-		logger.info(f.length()+" ");
 		
 		assertThat(f.length(),equalTo((long)200000*92));
 	}
 	
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void load_checkHashStore() throws Exception{
+	    fillWith(200000,byteBlockStoreChainDownload,block);
+	    byteBlockStoreChainDownload.persist();
+	    byteBlockStoreChainDownload = null;
+	    CoordChainDownload bbscd = b2();
+	    assertThat(bbscd.hashStore.nRecordedHashes(),
+	            equalTo(0));
+	    bbscd.load();
+	    assertThat(bbscd.hashStore.nRecordedHashes(),
+	            equalTo(200000));
+	    
+	}
 	@Before
 	public void beforeTest() throws IOException{
 		
 	    this.block = newGenesisBlock();
-		this.hashStore = new HashStore();
+		this.hashStore = new HashStore4ALL();
 		this.serializer = new StoredBlockSerializerImpl(null);
-		this.memoryStoredBlocks = new MemoryBytesStoredBlocks(serializer);
+		this.memoryStoredBlocks = new BytesInRAMBlocks(serializer);
 		this.f = queryDiskFile();
-		this.bwds = new ByteWriteDiskStore(
+		this.bwds = new BytesInDISKBlocksWriter(
                 newGenesisBlock(),serializer,f);
 		this.byteBlockStoreChainDownload = b();
 		
 			
 	}
 	
-	public ByteBlockStoreChainDownload b() throws IOException{
+	public CoordChainDownload b() throws IOException{
 	    
-		return new ByteBlockStoreChainDownload(
+		return new CoordChainDownload(
 				hashStore, memoryStoredBlocks, bwds, 200000);
 	}
 	
-	public ByteBlockStoreChainDownload b2() throws IOException{
-        return new ByteBlockStoreChainDownload(
-                new HashStore(), memoryStoredBlocks, bwds, 200000);
+	public CoordChainDownload b2() throws IOException{
+        return new CoordChainDownload(
+                new HashStore4ALL(), memoryStoredBlocks, bwds, 200000);
     }
-	public static void fillWith(int num,ByteBlockStoreChainDownload BBSCD, Block header){
+	public static void fillWith(int num,CoordChainDownload BBSCD, Block header){
 		StoredBlock temp = new StoredBlock(header,BigInteger.ONE,2);
 		temp = generateBlock(temp,0);
 		List<StoredBlock> storedBlocks = new ArrayList<StoredBlock>();

@@ -1,6 +1,6 @@
 package com.bitcoin.core.test.support;
 
-import com.google.bitcoin.blockstore.experimental.StoredBlockSerializerImpl;
+import com.google.bitcoin.blockstore.experimental.bytearray.StoredBlockSerializerImpl;
 import com.google.bitcoin.core.Block;
 import com.google.bitcoin.core.NetworkParameters;
 import com.google.bitcoin.genesis.GenesisBlock;

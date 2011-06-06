@@ -1,4 +1,4 @@
-package com.google.bitcoin.blockstore.experimental;
+package com.google.bitcoin.blockstore.experimental.bytearray;
 
 
 
@@ -14,7 +14,7 @@ package com.google.bitcoin.blockstore.experimental;
  * @author Micheal Swiggs
  *
  */
-public class HashStore {
+public class HashStore4ALL {
 
 	public static int hashSize = 32;
 	
@@ -31,7 +31,7 @@ public class HashStore {
 	int threshold = 50;
 	
 	int numStoredRecordedHashes = 0;
-	public HashStore(){
+	public HashStore4ALL(){
 		assert expectedAddresses>storeSize;
 		hashes = new byte[storeSize][6];
 		indexScale = (.98)*(double)storeSize/(double)expectedAddresses;
