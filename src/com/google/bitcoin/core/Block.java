@@ -63,7 +63,7 @@ public class Block extends Message {
     private transient byte[] hash;
 
     /** Special case constructor, used for the genesis node and unit tests. */
-    Block(NetworkParameters params) {
+    public Block(NetworkParameters params) {
         super(params);
         // Set up a few basic things. We are not complete after this though.
         version = 1;

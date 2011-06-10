@@ -3,12 +3,10 @@ package com.google.bitcoin.core.experimental;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import static com.google.bitcoin.core.Utils.*;
+import static com.google.bitcoin.core.experimental.SupportMethods.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;

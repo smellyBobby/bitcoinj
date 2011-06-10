@@ -3,6 +3,7 @@ package com.google.bitcoin.core.experimental;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import static com.google.bitcoin.core.Utils.*;
+import static com.google.bitcoin.core.experimental.SupportMethods.*;
 
 import java.io.IOException;
 import java.math.BigInteger;

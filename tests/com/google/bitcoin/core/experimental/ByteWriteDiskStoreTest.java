@@ -3,6 +3,7 @@ package com.google.bitcoin.core.experimental;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import static com.google.bitcoin.core.Utils.*;
+import static com.google.bitcoin.core.experimental.SupportMethods.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -155,7 +156,7 @@ public class ByteWriteDiskStoreTest {
 	    this.block = NetworkParameters.prodNet().genesisBlock;
 	    this.f = blankQueryDiskFile();
 	    this.byteWriteDiskStore = new BytesInDiskBlocksWriter(
-	            new GenesisBlock(null), storedBlockSerializer(), f);
+	            NetworkParameters.prodNet().genesisBlock, storedBlockSerializer(), f);
 	}
 	public static void fillWith(int num,BytesInDiskBlocksWriter bwds,
 			Block initialHeader){
