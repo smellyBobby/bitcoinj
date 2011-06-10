@@ -109,4 +109,14 @@ public class StoredBlock implements Serializable {
     public String toString() {
         return "Block at height " + getHeight() + ": " + getHeader().toString();
     }
+
+
+	public byte[] getPrevByteHash() {
+		return header.getPrevBlockHash();
+	}
+
+
+	public byte[] getByteHash() {
+		return header.getHash();
+	}
 }

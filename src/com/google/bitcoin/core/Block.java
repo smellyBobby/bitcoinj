@@ -77,7 +77,23 @@ public class Block extends Message {
         super(params, payloadBytes, 0);
     }
 
-    void parse() throws ProtocolException {
+    /**
+     * Constructor intended to be used by StoredBlockSerializerImpl
+     */
+	public Block(NetworkParameters networkParameters, byte[] prevBlockHash,
+			int version, byte[] merkleRoot, int time, int difficultyTarget,
+			int nonce, byte[] hash) {
+		super(networkParameters);
+		this.prevBlockHash = prevBlockHash;
+		this.version = version;
+		this.merkleRoot = merkleRoot;
+		this.time = time;
+		this.difficultyTarget = difficultyTarget;
+		this.nonce = nonce;
+		this.hash = hash;
+	}
+
+	void parse() throws ProtocolException {
         version = readUint32();
         prevBlockHash = readHash();
         merkleRoot = readHash();
@@ -373,7 +389,7 @@ public class Block extends Message {
     }
 
     /** Exists only for unit testing. */
-    void setMerkleRoot(byte[] value) {
+    public void setMerkleRoot(byte[] value) {
         merkleRoot = value;
         hash = null;
     }
@@ -399,7 +415,7 @@ public class Block extends Message {
         return prevBlockHash;
     }
 
-    void setPrevBlockHash(byte[] prevBlockHash) {
+    public void setPrevBlockHash(byte[] prevBlockHash) {
         this.prevBlockHash = prevBlockHash;
         this.hash = null;
     }
@@ -480,4 +496,9 @@ public class Block extends Message {
     Block createNextBlock(Address to) {
         return createNextBlock(to, System.currentTimeMillis() / 1000);
     }
+
+	public void setHash(byte[] _hash) {
+		hash = _hash;
+		
+	}
 }
