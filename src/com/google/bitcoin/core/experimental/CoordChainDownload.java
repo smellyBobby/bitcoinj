@@ -17,13 +17,13 @@ public class CoordChainDownload {
 	
 	int chainLength;
 	int memoryIndexOffset;
-	HashStore4ALL hashStore;
+	HashStoreForAll hashStore;
 	BytesInRamBlocks memoryStoredBlocks;
 	BytesInDiskBlocksWriter byteDiskStore;
 
 	boolean memoryPrevHashSet = false;
 	
-	public CoordChainDownload(HashStore4ALL hashStore,
+	public CoordChainDownload(HashStoreForAll hashStore,
 			BytesInRamBlocks memoryStoredBlocks,
 			BytesInDiskBlocksWriter byteDiskStore,
 			int height){
@@ -65,13 +65,14 @@ public class CoordChainDownload {
 		int length = diskChainLength-nHashesInHashStore;
 		
 		byte[] hashBuf = new byte[32];
-		byte[] hashes = byteDiskStore.getHashes(nHashesInHashStore,length);
+		byte[] hashes = byteDiskStore.getHashes(nHashesInHashStore,
+				length);
 		for(int i=0;i<length;i++){
 			System.arraycopy(
 				hashes, i*32, hashBuf, 0, 32);
 			hashStore.put(hashBuf, nHashesInHashStore++);
 		}
-		
+		//Part 2 -> Refering to activity diagrams. 
 		byte[] firstHashInRAM = memoryStoredBlocks.firstHash();
 		int firstHashPosition = hashStore.getIndexPosition(firstHashInRAM);
 		int expectedFirstHashPosition = chainLength-BytesInRamBlocks.N_INITIAL_BLOCKS;
@@ -87,7 +88,7 @@ public class CoordChainDownload {
 		            i<firstHashPosition;i++){
 		        byte[] buf = byteDiskStore.getBlockBytes(i);
 		        
-		        memoryStoredBlocks.putBytesWithHashCheck(buf,
+		        memoryStoredBlocks.putBytesWithPrevHashCheck(buf,
 		                i-memoryIndexOffset);
 		    }
 		}

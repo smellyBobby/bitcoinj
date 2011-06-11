@@ -14,7 +14,7 @@ package com.google.bitcoin.core.experimental;
  * @author Micheal Swiggs
  *
  */
-public class HashStore4ALL {
+public class HashStoreForAll {
 
 	public static int hashSize = 32;
 	
@@ -31,7 +31,7 @@ public class HashStore4ALL {
 	int threshold = 50;
 	
 	int numStoredRecordedHashes = 0;
-	public HashStore4ALL(){
+	public HashStoreForAll(){
 		assert expectedAddresses>storeSize;
 		hashes = new byte[storeSize][6];
 		indexScale = (.98)*(double)storeSize/(double)expectedAddresses;

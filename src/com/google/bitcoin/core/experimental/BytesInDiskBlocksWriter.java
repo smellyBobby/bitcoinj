@@ -1,5 +1,7 @@
 package com.google.bitcoin.core.experimental;
 
+import static com.google.bitcoin.core.experimental.Utils.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -162,7 +164,7 @@ public class BytesInDiskBlocksWriter {
 	}
 	
 	private void validateBlock(StoredBlock block){
-		if(Arrays.equals(block.getPrevByteHash(),previousBlock.getHash())){
+		if(!Arrays.equals(block.getPrevByteHash(),previousBlock.getHash())){
 		   throw new ByteBlockStoreException("Previous hash mismatch");
 		}
 		previousBlock = block.getHeader();

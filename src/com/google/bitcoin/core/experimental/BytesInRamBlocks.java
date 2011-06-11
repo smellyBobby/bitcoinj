@@ -79,6 +79,17 @@ public class BytesInRamBlocks {
 		put(storedBlock,position);
 	}
 	
+	public void putBytesWithPrevHashCheck(byte[] blockBytes,int position){
+		byte[] prevBlockHashStored = getPreviousHash(position);
+		byte[] prevHash = Arrays.copyOfRange(blockBytes, 0, 32);
+		if(!Arrays.equals(prevBlockHashStored, prevHash))
+			throw new ByteBlockStoreException("Previous hash mismatch");
+		validatePosition(position);
+		System.arraycopy(blockBytes, 0, storedBlocksArray, 
+				position*BLOCK_SIZE, blockBytes.length);
+		
+	}
+	
 	public void putWithoutPrevHashCheck(StoredBlock storedBlock,int position){
 		put(storedBlock,position);
 	}

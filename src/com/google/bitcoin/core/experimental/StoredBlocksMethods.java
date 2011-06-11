@@ -1,6 +1,7 @@
 package com.google.bitcoin.core.experimental;
 
 import static com.google.bitcoin.core.Utils.*;
+import static com.google.bitcoin.core.experimental.Utils.*;
 
 import java.math.BigInteger;
 

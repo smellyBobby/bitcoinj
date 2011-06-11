@@ -31,7 +31,7 @@ public class ByteBlockStoreChainDownloadTest {
 	
 	Block block;
 	
-	HashStore4ALL hashStore;
+	HashStoreForAll hashStore;
 	
 	BytesInRamBlocks memoryStoredBlocks;
 	
@@ -205,7 +205,7 @@ public class ByteBlockStoreChainDownloadTest {
 	public void beforeTest() throws IOException{
 		
 	    this.block = NetworkParameters.prodNet().genesisBlock;
-		this.hashStore = new HashStore4ALL();
+		this.hashStore = new HashStoreForAll();
 		this.serializer = new StoredBlockSerializerImpl(null);
 		this.memoryStoredBlocks = new BytesInRamBlocks(serializer);
 		this.f = queryDiskFile();
@@ -224,7 +224,7 @@ public class ByteBlockStoreChainDownloadTest {
 	
 	public CoordChainDownload b2() throws IOException{
         return new CoordChainDownload(
-                new HashStore4ALL(), memoryStoredBlocks, bwds, 200000);
+                new HashStoreForAll(), memoryStoredBlocks, bwds, 200000);
     }
 	public static void fillWith(int num,CoordChainDownload BBSCD, Block header){
 		StoredBlock temp = new StoredBlock(header,BigInteger.ONE,2);
