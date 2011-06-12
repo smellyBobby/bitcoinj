@@ -190,6 +190,7 @@ public class HashStoreForAll {
 		isNotCollisionAddress(position);
 		putPositionCallee.init();
 		int falseIndex = getPosition(hash,putPositionCallee);
+		testPrint("falseIndex: "+falseIndex);
 		int indexResult = putPositionCallee.getResult();
 		numStoredRecordedHashes++;
 		if(indexResult!=-1){
@@ -408,6 +409,12 @@ public class HashStoreForAll {
 	}
 	
 	static void println(Object ob){
+		System.out.println(ob);
+	}
+	
+	public static boolean testPrint = false;
+	static void testPrint(Object ob){
+		if(!testPrint)return;
 		System.out.println(ob);
 	}
 	

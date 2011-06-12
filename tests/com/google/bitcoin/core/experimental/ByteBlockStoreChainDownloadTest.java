@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -133,9 +134,8 @@ public class ByteBlockStoreChainDownloadTest {
 		}
 		
 		for(int i=0;i<200000;i++){
-			if(i<152000)continue;
 			StoredBlock block = storedBlocks.get(i);
-			StoredBlock other = memoryStoredBlocks.getStoredBlock(i-152000);
+			StoredBlock other = memoryStoredBlocks.getStoredBlock(i);
 			assertThat("Failure on index "+i,other.getByteHash(),equalTo(
 					block.getByteHash()));
 		}
@@ -201,6 +201,21 @@ public class ByteBlockStoreChainDownloadTest {
 	            equalTo(200000));
 	    
 	}
+	
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void load_checkMemoryBytesBlockStore() throws Exception{
+		fillWith(200000,byteBlockStoreChainDownload,block);
+		byteBlockStoreChainDownload.persist();
+		byteBlockStoreChainDownload = null;
+		CoordChainDownload bbscd = b2();
+		assertThat(bbscd.hashStore.nRecordedHashes(),
+				equalTo(0));
+		byte[] genesisHash = NetworkParameters.prodNet().genesisBlock.getHash();
+		println(Arrays.toString(new byte[32]));
+		assertThat(bbscd.memoryStoredBlocks.lastHash(),
+				equalTo(genesisHash));
+	}
 	@Before
 	public void beforeTest() throws IOException{
 		
@@ -208,7 +223,7 @@ public class ByteBlockStoreChainDownloadTest {
 		this.hashStore = new HashStoreForAll();
 		this.serializer = new StoredBlockSerializerImpl(null);
 		this.memoryStoredBlocks = new BytesInRamBlocks(serializer);
-		this.f = queryDiskFile();
+		this.f = blankQueryDiskFile();
 		this.bwds = new BytesInDiskBlocksWriter(
                 NetworkParameters.prodNet().genesisBlock,serializer,f);
 		this.byteBlockStoreChainDownload = b();
@@ -224,7 +239,7 @@ public class ByteBlockStoreChainDownloadTest {
 	
 	public CoordChainDownload b2() throws IOException{
         return new CoordChainDownload(
-                new HashStoreForAll(), memoryStoredBlocks, bwds, 200000);
+                new HashStoreForAll(), new BytesInRamBlocks(serializer), bwds, 200000);
     }
 	public static void fillWith(int num,CoordChainDownload BBSCD, Block header){
 		StoredBlock temp = new StoredBlock(header,BigInteger.ONE,2);

@@ -30,6 +30,7 @@ public class SupportMethods {
     	        file.delete();
     	    }
 	    }
+	    if(result.isFile())result.delete();
 	    try {
             result.createNewFile();
         } catch (IOException e) {
@@ -38,4 +39,7 @@ public class SupportMethods {
 	    return result;
 	}
 	
+	static void println(Object ob){
+		System.out.println(ob);
+	}
 }

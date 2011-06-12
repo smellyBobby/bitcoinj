@@ -67,6 +67,10 @@ public class CoordChainDownload {
 		byte[] hashBuf = new byte[32];
 		byte[] hashes = byteDiskStore.getHashes(nHashesInHashStore,
 				length);
+		testPrint(hashStore.expectedAddresses);
+		testPrint("diskChainLength: "+diskChainLength);
+		testPrint("nHashesInHashStore: "+nHashesInHashStore);
+		testPrint("length: "+length);
 		for(int i=0;i<length;i++){
 			System.arraycopy(
 				hashes, i*32, hashBuf, 0, 32);
@@ -105,6 +109,12 @@ public class CoordChainDownload {
 	}
 	
 	public static void println(Object ob){
+		System.out.println(ob);
+	}
+	
+	public static boolean testPrint = false;
+	static void testPrint(Object ob){
+		if(!testPrint)return;
 		System.out.println(ob);
 	}
 }
