@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import static com.google.bitcoin.core.Utils.*;
 import static com.google.bitcoin.core.experimental.SupportMethods.*;
+import static com.google.bitcoin.core.experimental.Utils.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -202,19 +203,110 @@ public class ByteBlockStoreChainDownloadTest {
 	    
 	}
 	
+
+	/**
+	 * 
+	 * Remember that your not testing for all blocks in the 
+	 * block-chain. Only the most recent blocks added to the
+	 * block-chain.
+	 * 
+	 */
 	@Category(ByteBlockStoreChainDownload_test.class)
 	@Test
 	public void load_checkMemoryBytesBlockStore() throws Exception{
-		fillWith(200000,byteBlockStoreChainDownload,block);
+		List<StoredBlock> storedBlocks =
+			fillWith(200000,byteBlockStoreChainDownload,block);
 		byteBlockStoreChainDownload.persist();
+		byte[] storedBlocksArrayExpected = byteBlockStoreChainDownload.memoryStoredBlocks.storedBlocksArray;
 		byteBlockStoreChainDownload = null;
 		CoordChainDownload bbscd = b2();
 		assertThat(bbscd.hashStore.nRecordedHashes(),
 				equalTo(0));
-		byte[] genesisHash = NetworkParameters.prodNet().genesisBlock.getHash();
-		println(Arrays.toString(new byte[32]));
+		
+		// This makes sure that BytesInRamBlocks.storedBlocksArray is blank.
+		assertThat(bbscd.memoryStoredBlocks.firstHash(),
+				equalTo(new byte[32]));
 		assertThat(bbscd.memoryStoredBlocks.lastHash(),
-				equalTo(genesisHash));
+				equalTo(new byte[32]));
+		
+		bbscd.load();
+		
+		byte[] storedBlocksArrayResult = 
+			bbscd.memoryStoredBlocks.storedBlocksArray;
+		assertThat(storedBlocksArrayExpected,
+				equalTo(storedBlocksArrayResult));
+		int threshold = (bbscd.chainLength-BytesInRamBlocks.N_INITIAL_BLOCKS);
+		for(int i=threshold;i<200000;i++){
+			StoredBlock block = storedBlocks.get(i);
+			StoredBlock other = 
+				bbscd.memoryStoredBlocks.getStoredBlock(i-threshold);
+			assertThat("Failure on index "+i,block.getByteHash(),
+					equalTo(other.getByteHash()));
+		}
+	}
+	
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void load_checkByteDiskStore() throws Exception{
+		List<StoredBlock> storedBlocks =
+			fillWith(200000,byteBlockStoreChainDownload,block);
+		
+		
+		byteBlockStoreChainDownload.persist();
+		byteBlockStoreChainDownload = null;
+		CoordChainDownload bbscd = b2();
+		
+		bbscd.load();
+		BytesInDiskBlocksWriter byteDiskStore = 
+			bbscd.byteDiskStore;
+		
+		StoredBlockSerializer serializer = 
+			new StoredBlockSerializerImpl(NetworkParameters.prodNet());
+		
+		for(int i=0;i<200000;i++){
+			byte[] expected = serializer.serialize(
+				storedBlocks.get(i));
+			byte[] result = byteDiskStore.getBlockBytes(i);
+			//Remove the previous hash from result.
+			byte[] resultWithoutPrevHash = 
+				Arrays.copyOfRange(result, 32,result.length);
+			
+			assertThat("Failed index: "+ i,
+					expected,
+					equalTo(resultWithoutPrevHash));
+		}
+	}
+	
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void loadCycles_2() throws Exception{
+		List<StoredBlock> storedBlocks = 
+			fillWith(50000,byteBlockStoreChainDownload,block);
+		byteBlockStoreChainDownload.persist();
+		byteBlockStoreChainDownload = null;
+		
+		CoordChainDownload bbscd = b2();
+		bbscd.load();
+		
+		storedBlocks.addAll(
+		   fillWith(50000,bbscd,storedBlocks.get(storedBlocks.size()).getHeader()));
+		
+	}
+	
+	/**
+	 * This test was written because HashStoreForAll was throwing
+	 * an invalid distance exception, but the invalid distance 
+	 * was zero.
+	 */
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void testHashStore() throws Exception{
+		fillWith(1,byteBlockStoreChainDownload,block);
+		byteBlockStoreChainDownload.persist();
+		byteBlockStoreChainDownload = null;
+		
+		CoordChainDownload bbscd = b2();
+		bbscd.load();
 	}
 	@Before
 	public void beforeTest() throws IOException{
@@ -241,16 +333,17 @@ public class ByteBlockStoreChainDownloadTest {
         return new CoordChainDownload(
                 new HashStoreForAll(), new BytesInRamBlocks(serializer), bwds, 200000);
     }
-	public static void fillWith(int num,CoordChainDownload BBSCD, Block header){
+	public static List<StoredBlock> fillWith(int num,CoordChainDownload BBSCD, Block header){
 		StoredBlock temp = new StoredBlock(header,BigInteger.ONE,2);
 		temp = generateBlock(temp,0);
 		List<StoredBlock> storedBlocks = new ArrayList<StoredBlock>();
 		
-		for(int i=0;i<200000;i++){
+		for(int i=0;i<num;i++){
 			BBSCD.putStoredBlock(temp);
 			storedBlocks.add(temp);
 			temp = generateBlock(temp,i+1);
 		}
+		return storedBlocks;
 	}
 	public static StoredBlock generateBlock(StoredBlock previous,int i){
 		BigInteger dec = BigInteger.valueOf(i);

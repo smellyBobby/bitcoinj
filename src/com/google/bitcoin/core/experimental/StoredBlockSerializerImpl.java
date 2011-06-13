@@ -20,6 +20,10 @@ public class StoredBlockSerializerImpl
 		networkParameters = n;
 	}
 	
+	/**
+	 * This takes a StoredBlock and returns a byte array 
+	 * that is 92-bytes long.
+	 */
 	@Override
 	public byte[] serialize(StoredBlock storedBlock) {
 		resetOffset();
@@ -39,6 +43,10 @@ public class StoredBlockSerializerImpl
 		return bytes;
 	}
 
+	/**
+	 * This takes a byte array that is 124-bytes long
+	 * and parses the byte array, returning a StoredBlock.
+	 */
 	@Override
 	public StoredBlock deserialize(byte[] source) {
 		resetOffset();

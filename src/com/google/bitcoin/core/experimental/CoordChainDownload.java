@@ -1,7 +1,10 @@
 package com.google.bitcoin.core.experimental;
 
+import static com.google.bitcoin.core.experimental.Utils.*;
 import java.io.IOException;
+import java.util.Arrays;
 
+import com.google.bitcoin.core.NetworkParameters;
 import com.google.bitcoin.core.StoredBlock;
 
 
@@ -78,6 +81,10 @@ public class CoordChainDownload {
 		}
 		//Part 2 -> Refering to activity diagrams. 
 		byte[] firstHashInRAM = memoryStoredBlocks.firstHash();
+		if(Arrays.equals(firstHashInRAM, NetworkParameters.prodNet().genesisBlock.getPrevBlockHash())){
+			throw new RuntimeException("toeuhsaonuh");
+		}
+		printHash(firstHashInRAM);
 		int firstHashPosition = hashStore.getIndexPosition(firstHashInRAM);
 		int expectedFirstHashPosition = chainLength-BytesInRamBlocks.N_INITIAL_BLOCKS;
 		

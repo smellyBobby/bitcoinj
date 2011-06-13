@@ -192,6 +192,7 @@ public class HashStoreForAll {
 		int falseIndex = getPosition(hash,putPositionCallee);
 		testPrint("falseIndex: "+falseIndex);
 		int indexResult = putPositionCallee.getResult();
+		println(indexResult);
 		numStoredRecordedHashes++;
 		if(indexResult!=-1){
 			hashes[indexResult][0] = hash[28];
@@ -222,11 +223,17 @@ public class HashStoreForAll {
 		@Override
 		public boolean validIndex(int index, int start,byte[] hash) {
 			int maxDistance = maxDistances[start] & 0xFF;
-			if((index-start)>maxDistance ||
-				(start-index) > maxDistance){
+			int currDistance = index-start;
+			currDistance = (currDistance>0?currDistance:currDistance*-1);
+			if(currDistance>maxDistance ){
+				println("start "+ start);
+				println("index "+ index);
+				println("currDistance "+ currDistance);
+				println("maxDistance "+ maxDistance);
 				throw new RuntimeException("Invalid distance "+
 						maxDistance);
 			}
+			println(isNull(index));
 			if(isNull(index))return false;
 			if(!arrayMatch(hash, index))return false;
 			return true;

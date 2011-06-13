@@ -42,7 +42,7 @@ public class BytesInRamBlocks {
 	
 	public void persist(){
 		try{
-		FileOutputStream outputStream = new FileOutputStream(fileName);
+		FileOutputStream outputStream = new FileOutputStream(fileName,false);
 		
 			outputStream.write(storedBlocksArray);
 		} catch (IOException e) {
@@ -58,7 +58,6 @@ public class BytesInRamBlocks {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		
 	}
 	public void setInitialPrevHash(byte[] hash){
 		initialPrevHash = hash;

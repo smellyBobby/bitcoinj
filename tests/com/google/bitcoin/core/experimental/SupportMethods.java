@@ -39,7 +39,4 @@ public class SupportMethods {
 	    return result;
 	}
 	
-	static void println(Object ob){
-		System.out.println(ob);
-	}
 }
