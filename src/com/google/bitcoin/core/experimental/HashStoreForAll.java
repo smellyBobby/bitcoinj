@@ -1,5 +1,8 @@
 package com.google.bitcoin.core.experimental;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 
 /**
@@ -113,9 +116,13 @@ public class HashStoreForAll {
 		}
 		
 		public boolean validIndex(int index, int start, byte[] hash) {
+			//Check to see if this spot is allowed to be allocated.
 			if (!isValidSpot(index))
 				return false;
 			if(_beyondMode)return checkForCollision(index,start,hash);
+			//Check to make sure that spot is not null.
+			//If it is then check for a collision and terminate search.
+			
 			if (!isNull(index)) {
 				if(arrayMatch(hash,index)){
 					_collision = true;
@@ -124,8 +131,19 @@ public class HashStoreForAll {
 				}
 				return false;
 			}
+			//So from here on assume that the spot is valid and 
+			//blank.
+			
+			//Set _index to current scan spot.
 			_index = index;
+			
+			//This will set the maxDistance and update _pDistance.
 			update(index,start);
+			
+			//If _pDistance <= maxDistance then trigger
+			//beyond mode else, this means that scan spot
+			//is beyond previous maxDistance, therefore 
+			//there is no need to check for collisions.
 			int maxDistance = maxDistances[start];
 			if(!(_pDistance>maxDistance)){
 				_beyondMode = true;
@@ -133,6 +151,7 @@ public class HashStoreForAll {
 			}
 			return true;
 		}
+		
 		private void update(int index,int start){
 			processPutDistance(index, start);
 			_pDistance = index - start;
@@ -186,15 +205,23 @@ public class HashStoreForAll {
 	 * @param position- place in the block-chain this hash belongs.
 	 * @return -1 for success, otherwise something else.
 	 */
+	
+	public List<byte[]> collidedHashes = new ArrayList<byte[]>();
 	public int put(byte[] hash,int position){
 		isNotCollisionAddress(position);
 		putPositionCallee.init();
+		
+		//This represents when the spot search was 
+		//terminated.
 		int falseIndex = getPosition(hash,putPositionCallee);
-		testPrint("falseIndex: "+falseIndex);
+		
+		//This represents the actual spot where the hash was 
+		//allocated. But if there was a collision then this
+		//will return -1.
 		int indexResult = putPositionCallee.getResult();
-		println(indexResult);
 		numStoredRecordedHashes++;
 		if(indexResult!=-1){
+			
 			hashes[indexResult][0] = hash[28];
 			hashes[indexResult][1] = hash[29];
 			hashes[indexResult][2] = hash[30];
@@ -206,14 +233,17 @@ public class HashStoreForAll {
 				(byte) position;
 			return -1;
 		}else{
+			
 			int result = ((hashes[falseIndex][3] & 0x0F)<<16) |
 					((hashes[falseIndex][4] & 0xFF)<<8) |
 					((hashes[falseIndex][5] & 0xFF)<<0 );
+			
 			hashes[falseIndex][3] = 
 				(byte) ((hashes[falseIndex][3] & 0xF0) | 
 				(0x0F));
 			hashes[falseIndex][4] = (byte)0xFF;
 			hashes[falseIndex][5] = (byte)0xFF;
+			println(result);
 			return result;
 		}
 	}
@@ -233,7 +263,6 @@ public class HashStoreForAll {
 				throw new RuntimeException("Invalid distance "+
 						maxDistance);
 			}
-			println(isNull(index));
 			if(isNull(index))return false;
 			if(!arrayMatch(hash, index))return false;
 			return true;
@@ -286,6 +315,7 @@ public class HashStoreForAll {
 		((hashes[position][4] & 0xFF) <<  8) |
 		(hashes[position][5] & 0xFF);
 	}
+	
 	private boolean notNull(int index){
 		return !isNullB(index);
 	}
@@ -385,6 +415,7 @@ public class HashStoreForAll {
 					"\n" +expectedAddresses+
 					".\nThis is the collision address.");
 	}
+	
 	public static class HashStoreException extends RuntimeException{
 
 		public HashStoreException(String string) {

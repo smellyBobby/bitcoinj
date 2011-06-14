@@ -165,7 +165,9 @@ public class BytesInDiskBlocksWriter {
 	
 	private void validateBlock(StoredBlock block){
 		if(!Arrays.equals(block.getPrevByteHash(),previousBlock.getHash())){
-		   throw new ByteBlockStoreException("Previous hash mismatch");
+		   printHash(block.getPrevByteHash());
+		   printHash(previousBlock.getHash());
+			throw new ByteBlockStoreException("Previous hash mismatch");
 		}
 		previousBlock = block.getHeader();
 	}

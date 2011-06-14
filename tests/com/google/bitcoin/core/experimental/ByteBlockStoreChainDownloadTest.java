@@ -11,7 +11,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import org.junit.Before;
@@ -289,10 +291,145 @@ public class ByteBlockStoreChainDownloadTest {
 		bbscd.load();
 		
 		storedBlocks.addAll(
-		   fillWith(50000,bbscd,storedBlocks.get(storedBlocks.size()).getHeader()));
+		   fillWith(50000,bbscd,storedBlocks.get(storedBlocks.size()-1).getHeader()));
 		
 	}
 	
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void loadCycles_3() throws Exception{
+		List<StoredBlock> storedBlocks = 
+			fillWith(50000,byteBlockStoreChainDownload,block);
+		byteBlockStoreChainDownload.persist();
+		byteBlockStoreChainDownload = null;
+		
+		CoordChainDownload bbscd = b2();
+		bbscd.load();
+		
+		storedBlocks.addAll(
+			fillWith(50000,bbscd,storedBlocks.get(storedBlocks.size()-1).getHeader()));
+		bbscd.persist();
+		bbscd = null;
+		bbscd = b2();
+		bbscd.load();
+		
+		storedBlocks.addAll(
+			fillWith(50000,bbscd,storedBlocks.get(storedBlocks.size()-1).getHeader()));
+	}
+	
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void loadCycles_10() throws Exception{
+		List<StoredBlock> storedBlocks = 
+			fillWith(15000,byteBlockStoreChainDownload,block);
+		byteBlockStoreChainDownload.persist();
+		byteBlockStoreChainDownload = null;
+		
+		for(int i=0;i<9;++i){
+			CoordChainDownload bbscd = b2();
+			bbscd.load();
+			storedBlocks.addAll(
+					fillWith(15000,bbscd,storedBlocks.get(storedBlocks.size()-1).getHeader()));
+				bbscd.persist();
+			bbscd=null;
+		}
+	}
+	
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void loadCycles_CheckHashStore() throws Exception{
+		List<StoredBlock> storedBlocks = 
+			fillWith(15000,byteBlockStoreChainDownload,block,0);
+		byteBlockStoreChainDownload.persist();
+		byteBlockStoreChainDownload = null;
+		
+		CoordChainDownload bbscd2 = null;
+		for(int i=0;i<9;++i){
+			CoordChainDownload bbscd = b2();
+			bbscd.load();
+			storedBlocks.addAll(
+					fillWith(15000,bbscd,storedBlocks.get(storedBlocks.size()-1).getHeader()));
+				bbscd.persist();
+			if(i==8){
+				bbscd2 = bbscd;
+			}else
+				bbscd=null;
+		}
+		
+		HashStoreForAll hashStore = bbscd2.hashStore;
+		
+		assertThat(hashStore.nRecordedHashes(),equalTo(150000));
+		
+	}
+	
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void loadCycles_CheckHashStoreB() throws Exception{
+		List<StoredBlock> storedBlocks = generateBlocks(150000,block);
+		int index = 0;
+		CoordChainDownload bbscd2 = null;
+		
+		for(int i=0;i<10;++i){
+			CoordChainDownload bbscd = b2();
+			bbscd.load();
+			for(int j=0;j<15000;j++){
+				bbscd.putStoredBlock(storedBlocks.get(index++));
+			}
+			bbscd.persist();
+			if(i==9){
+				bbscd2 = bbscd;
+			}else
+				bbscd=null;
+		}
+		
+		validateUniqueHashes(storedBlocks);
+		HashStoreForAll hashStore = bbscd2.hashStore;
+		
+		int cnt = 0;
+		int cnt2 = 0;
+		for(int i=0;i<storedBlocks.size();i++){
+			StoredBlock b = storedBlocks.get(i);
+			if(!hashStore.contains(b.getByteHash())){
+				cnt++;
+			}
+			
+			int idex = hashStore.getIndexPosition(b.getByteHash());
+			if(idex == HashStoreForAll.expectedAddresses){
+				++cnt2;
+			}
+		}
+		println("count collisions  "+cnt2);
+		println("count not contains"+cnt);
+		println("count collidedHashes " + hashStore.collidedHashes.size());
+		println("count coord collsions" + bbscd2.cnt);
+	}
+	
+	public void validateUniqueBlocks(List<StoredBlock> storedBlocks){
+		Set<String> hashes = new HashSet<String>();
+		for(StoredBlock storedBlock:storedBlocks){
+			hashes.add(storedBlock.getHeader().getHashAsString());
+		}
+		println(hashes.size());
+		println(storedBlocks.size());
+		assertThat(hashes.size(),equalTo(storedBlocks.size()));
+	}
+	
+	/**
+	 * This assumes that HashStoreForAll is using the indexes 
+	 * 28,29,30,(31&0xF0) as the sample.
+	 */
+	public void validateUniqueHashes(List<StoredBlock> storedBlocks){
+		Set<String> result = new HashSet<String>();
+		for(StoredBlock storedBlock:storedBlocks){
+			byte[] buf = new byte[4];
+			System.arraycopy(storedBlock.getByteHash(), 28, buf, 0, 4);
+			buf[3] = (byte) (buf[3] & 0xF0);
+			result.add(bytesToHexString(buf));
+		}
+		println(result.size());
+		println(storedBlocks.size());
+		println(result.size()-storedBlocks.size());
+	}
 	/**
 	 * This test was written because HashStoreForAll was throwing
 	 * an invalid distance exception, but the invalid distance 
@@ -331,8 +468,37 @@ public class ByteBlockStoreChainDownloadTest {
 	
 	public CoordChainDownload b2() throws IOException{
         return new CoordChainDownload(
-                new HashStoreForAll(), new BytesInRamBlocks(serializer), bwds, 200000);
+                new HashStoreForAll(), 
+                new BytesInRamBlocks(serializer), bwds, 200000);
     }
+	
+	public static List<StoredBlock> fillWith(int num,CoordChainDownload BBSCD,
+			Block header, int height){
+		StoredBlock temp = new StoredBlock(header,BigInteger.ONE,height);
+		temp = generateBlock(temp,height++);
+		List<StoredBlock> storedBlocks = new ArrayList<StoredBlock>();
+		
+		for(int i=0;i<num;i++){
+			BBSCD.putStoredBlock(temp);
+			storedBlocks.add(temp);
+			temp = generateBlock(temp,height++);
+		}
+		return storedBlocks;
+	}
+	
+	public static List<StoredBlock> generateBlocks(int num,Block initialBlock){
+		StoredBlock temp = new StoredBlock(initialBlock,BigInteger.ONE,0);
+		temp = generateBlock(temp,0);
+		List<StoredBlock> storedBlocks = new ArrayList<StoredBlock>();
+		
+		for(int i=0;i<num;i++){
+			storedBlocks.add(temp);
+			temp = generateBlock(temp,i+1);
+		}
+		
+		return storedBlocks;
+	}
+	
 	public static List<StoredBlock> fillWith(int num,CoordChainDownload BBSCD, Block header){
 		StoredBlock temp = new StoredBlock(header,BigInteger.ONE,2);
 		temp = generateBlock(temp,0);
