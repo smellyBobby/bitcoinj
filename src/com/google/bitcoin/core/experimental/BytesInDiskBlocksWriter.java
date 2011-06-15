@@ -140,7 +140,7 @@ public class BytesInDiskBlocksWriter {
         }
 	}
 	private byte[] _getBlockBytes(int height) throws IOException{
-        
+        long fP =randomAccessFile.getFilePointer();
         byte[] result = new byte[BLOCK_SIZE+32];
         if(height!=0){
             randomAccessFile.seek((height*BLOCK_SIZE)-32);
@@ -150,6 +150,7 @@ public class BytesInDiskBlocksWriter {
             randomAccessFile.read(result,32,BLOCK_SIZE);
             System.arraycopy(initialPrevHash, 0, result, 0, 32);
         }
+        randomAccessFile.seek(fP);
         return result;
     }
 

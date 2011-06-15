@@ -2,7 +2,9 @@ package com.google.bitcoin.core.experimental;
 
 import static com.google.bitcoin.core.experimental.Utils.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import com.google.bitcoin.core.NetworkParameters;
 import com.google.bitcoin.core.StoredBlock;
@@ -44,10 +46,9 @@ public class CoordChainDownload {
 		this.chainLength = chainLength;
 		memoryIndexOffset = chainLength-BytesInRamBlocks.N_INITIAL_BLOCKS;
 	}
-	public int cnt=0;
 	public void putStoredBlock(StoredBlock storedBlock){
-		int i = hashStore.put(storedBlock.getByteHash(),storedBlock.getHeight());
-		if(i!=-1)cnt++;
+		hashStore.put(storedBlock.getByteHash(),storedBlock.getHeight());
+
 		if(storedBlock.getHeight()>=(chainLength-BytesInRamBlocks.N_INITIAL_BLOCKS))
 			putInMemory(storedBlock);
 		
@@ -59,9 +60,15 @@ public class CoordChainDownload {
 		byteDiskStore.persist();
 		memoryStoredBlocks.persist();
 	}
-	public void collision(int jj){
-		println(jj);
+	
+	public List<byte[]> collisionHashes = new ArrayList<byte[]>();
+	
+	private void collision(byte[] hash){
+		println(collisionHashes.size());
+		collisionHashes.add(hash.clone());
+		
 	}
+
 	public void load(){
 		memoryStoredBlocks.load();
 		
@@ -73,15 +80,22 @@ public class CoordChainDownload {
 		byte[] hashBuf = new byte[32];
 		byte[] hashes = byteDiskStore.getHashes(nHashesInHashStore,
 				nHashesMissingFromHashStore);
-		println("nHashesInHashStore "+nHashesInHashStore);
 		for(int i=0;i<nHashesMissingFromHashStore;i++){
 			System.arraycopy(
 				hashes, i*32, hashBuf, 0, 32);
-			int j=hashStore.put(hashBuf, nHashesInHashStore++);
-			if(j!=-1)
-				collision(j);
+			int _collision =
+				hashStore.put(hashBuf, nHashesInHashStore++);
+			 if(_collision != -1){
+				if(_collision != HashStoreForAll.expectedAddresses ||false){
+					byte[] blockBytes = 
+						byteDiskStore.getBlockBytes(_collision);
+					byte[] hashTemp = Arrays.copyOfRange(blockBytes, 
+							blockBytes.length-32, blockBytes.length);
+					collision(hashTemp);
+				}
+				collision(hashBuf);
+			}
 		}
-		println(nHashesInHashStore);
 		//Part 2 -> Refering to activity diagrams. 
 		byte[] firstHashInRAM = memoryStoredBlocks.firstHash();
 		//Need to deal with the case when no StoredBlocks have been 

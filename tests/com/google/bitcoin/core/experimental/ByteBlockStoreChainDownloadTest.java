@@ -11,8 +11,10 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -382,7 +384,7 @@ public class ByteBlockStoreChainDownloadTest {
 				bbscd=null;
 		}
 		
-		validateUniqueHashes(storedBlocks);
+		List<byte[]> vHashes = validateUniqueHashes(storedBlocks);
 		HashStoreForAll hashStore = bbscd2.hashStore;
 		
 		int cnt = 0;
@@ -401,9 +403,45 @@ public class ByteBlockStoreChainDownloadTest {
 		println("count collisions  "+cnt2);
 		println("count not contains"+cnt);
 		println("count collidedHashes " + hashStore.collidedHashes.size());
-		println("count coord collsions" + bbscd2.cnt);
+		println("collisionHashes "+bbscd2.collisionHashes.size());
+		List<byte[]> oHashes = bbscd2.collisionHashes;
+		
+		println("validateHashes "+ vHashes.size());
+		println("collisionHashes:"+oHashes.size());
+		
+		
 	}
 	
+	/**
+	 * Understandings how collisions work.
+	 */
+	@Category(ByteBlockStoreChainDownload_test.class)
+	@Test
+	public void hashStoreCollisions() throws Exception{
+		List<StoredBlock> storedBlocks = generateBlocks(80000,block);
+		List<byte[]> vHashes =validateUniqueHashes(storedBlocks);
+		CoordChainDownload bbscdA = b2();
+		
+		for(int i=0;i<storedBlocks.size();i++){
+			bbscdA.putStoredBlock(storedBlocks.get(i));
+		}
+		bbscdA.persist();
+		bbscdA = null;
+		bbscdA = b2();
+		bbscdA.load();
+		println("collisionHashes.size "+bbscdA.collisionHashes.size());
+		for(byte[] h:bbscdA.collisionHashes){
+			printHash(h);
+		}
+		
+		println("");
+		
+		for(byte[] h:vHashes){
+			printHash(h);
+			println(hashStore.mapIndex(h));
+		}
+
+	}
 	public void validateUniqueBlocks(List<StoredBlock> storedBlocks){
 		Set<String> hashes = new HashSet<String>();
 		for(StoredBlock storedBlock:storedBlocks){
@@ -418,17 +456,42 @@ public class ByteBlockStoreChainDownloadTest {
 	 * This assumes that HashStoreForAll is using the indexes 
 	 * 28,29,30,(31&0xF0) as the sample.
 	 */
-	public void validateUniqueHashes(List<StoredBlock> storedBlocks){
-		Set<String> result = new HashSet<String>();
+	public List<byte[]> validateUniqueHashes(List<StoredBlock> storedBlocks){
+		Set<String> hashStrings = new HashSet<String>();
+		List<byte[]> hashes = new ArrayList<byte[]>();
+		Map<String,byte[]> hashStringMap = new HashMap<String,byte[]>();
+		
 		for(StoredBlock storedBlock:storedBlocks){
 			byte[] buf = new byte[4];
-			System.arraycopy(storedBlock.getByteHash(), 28, buf, 0, 4);
+			System.arraycopy(storedBlock.getByteHash(), 
+					28, buf, 0, 4);
 			buf[3] = (byte) (buf[3] & 0xF0);
-			result.add(bytesToHexString(buf));
+			String hashKey = bytesToHexString(buf);
+			hashStrings.add(hashKey);
+			if(hashStringMap.containsKey(hashKey)){
+				if(hashStringMap.get(hashKey)!=null){
+					byte[] one = hashStringMap.get(hashKey);
+					byte[] hash = buf;
+					hashes.add(hashStringMap.get(hashKey));
+					boolean res = 0x00 ==(
+							(one[28] ^ hash[0]) |
+							(one[29] ^ hash[1]) |
+							(one[30] ^ hash[2]) |
+							((one[31] & 0xF0) ^ (hash[3] & 0xF0)));
+					println("res "+ res);
+				}
+				hashStringMap.put(hashKey, null);
+				hashes.add(storedBlock.getByteHash());
+			}else{
+				hashStringMap.put(hashKey, storedBlock.getByteHash());
+			}
 		}
-		println(result.size());
-		println(storedBlocks.size());
-		println(result.size()-storedBlocks.size());
+		
+		println("validateUniqueHashes:\n\t"+hashStrings.size()+ " - "+ storedBlocks.size() + " = "+ (hashStrings.size() - storedBlocks.size()));
+		
+		println("hashesResult "+hashes.size());
+		return hashes;
+		
 	}
 	/**
 	 * This test was written because HashStoreForAll was throwing
@@ -521,5 +584,7 @@ public class ByteBlockStoreChainDownloadTest {
 		StoredBlock result = new StoredBlock(block,BigInteger.TEN,i);
 		return result;
 	}
+	
+	
 	static public interface ByteBlockStoreChainDownload_test{};
 }

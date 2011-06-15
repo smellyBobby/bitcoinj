@@ -1,18 +1,25 @@
 package com.google.bitcoin.core.experimental;
 
+import static com.google.bitcoin.core.Utils.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
 
 
 /**
- * My Beloved. 
  * 
  * Notes:
  * 
  * This class should be considered muted. When a hash is stored
  * here, the same hash should not call put(...) again. Otherwise
  * this will cause nRecordedHashes() to become inconsistent.
+ * 
+ * 
+ * The hashstore could be generalized to objects that could 
+ * produce a key, that is sufficently random. 
+ * 
+ * Oscillating-search
  * 
  * @author Micheal Swiggs
  *
@@ -34,6 +41,7 @@ public class HashStoreForAll {
 	int threshold = 50;
 	
 	int numStoredRecordedHashes = 0;
+	
 	public HashStoreForAll(){
 		assert expectedAddresses>storeSize;
 		hashes = new byte[storeSize][6];
@@ -208,6 +216,12 @@ public class HashStoreForAll {
 	
 	public List<byte[]> collidedHashes = new ArrayList<byte[]>();
 	public int put(byte[] hash,int position){
+		if(t1.equals(bytesToHexString(hash))){
+			println("hash one found:");
+		}
+		if(t2.equals(bytesToHexString(hash))){
+			println("hash two found:");
+		}
 		isNotCollisionAddress(position);
 		putPositionCallee.init();
 		
@@ -243,7 +257,7 @@ public class HashStoreForAll {
 				(0x0F));
 			hashes[falseIndex][4] = (byte)0xFF;
 			hashes[falseIndex][5] = (byte)0xFF;
-			println(result);
+			collidedHashes.add(hash);
 			return result;
 		}
 	}
@@ -326,7 +340,12 @@ public class HashStoreForAll {
 			(hash[0] | hash[1] | hash[2] | hash[3]|hash[5]);
 		
 	}
+	String t1 = "9e000dbc963997d3acdcba9c84540d6b99ca02838fa58b32fd71be47dcd5ac40";
+	String t2 = "df7cccf34327d25dd113981efbdb8100b5697fe11568976389557982dcd5ac49";
+	
 	private boolean arrayMatch(byte[] one,int i){
+		
+			
 		byte[] hash = hashes[i];
 		return 0x00 ==(
 			(one[28] ^ hash[0]) |
@@ -339,6 +358,12 @@ public class HashStoreForAll {
 	private boolean isNull(int index){
 		return isNullB(index);
 	}
+	
+	/**
+	 * MapIndex should be consistent with arrayMatch.
+	 * @param hash
+	 * @return
+	 */
 	public int mapIndex(byte[] hash){
 		
 		int index = 
