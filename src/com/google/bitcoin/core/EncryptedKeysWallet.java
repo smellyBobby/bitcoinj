@@ -23,6 +23,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,12 +38,14 @@ import com.google.bitcoin.bouncycastle.crypto.params.*;
  *
  */
 public class EncryptedKeysWallet extends Wallet{
-
+	static final int HASH_ITERATIONS = 1000;
+	
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -7832747169923745467L;
-
+	
+	private byte[] 
 	private String passwordHash;
 	private byte[] encryptedKeys;
 	File file;
@@ -55,9 +59,9 @@ public class EncryptedKeysWallet extends Wallet{
 	 * @param params
 	 * @param key
 	 */
-	protected EncryptedKeysWallet(NetworkParameters params,String key,File f) {
+	private EncryptedKeysWallet(NetworkParameters params,byte[] key,File f) {
 		super(params);
-		initEncryption(key.getBytes());
+		initEncryption(key);
 	}
 	
 	private void initEncryption(byte[] key){
@@ -79,8 +83,7 @@ public class EncryptedKeysWallet extends Wallet{
         
         if( olen < size ){
             byte[] tmp = new byte[olen];
-            System.arraycopy(
-                    result, 0, tmp, 0, olen );
+            System.arraycopy(result, 0, tmp, 0, olen );
             result = tmp;
         }
         return result;
@@ -97,7 +100,7 @@ public class EncryptedKeysWallet extends Wallet{
     }
     
     
-    private synchronized decryptKeys() throws CryptoException {
+    private synchronized void decryptKeys() throws CryptoException, IOException {
     	assert encryptedKeys != null : "encryptedBytes can not be null";
         cipher.init(false,key);
         byte[] decryptedKeys = callCipher(encryptedKeys);
@@ -131,7 +134,7 @@ public class EncryptedKeysWallet extends Wallet{
 		encryptedKeys = encrypt(keyChainBytes);
 	}
 	
-	private void deserializeKeys( byte[] decryptedKeys ) throws IOException {
+	private List<ECKey> deserializeKeys( byte[] decryptedKeys ) throws IOException {
 		ByteArrayInputStream keyInputBuffer = new ByteArrayInputStream(decryptedKeys);
 		ObjectInputStream keyInputStream = new ObjectInputStream(keyInputBuffer);
 		ArrayList<ECKey> keys = null;
@@ -139,7 +142,10 @@ public class EncryptedKeysWallet extends Wallet{
 			keys = (ArrayList<ECKey>) keyInputStream.readObject();
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
-		} finally 
+		} finally {
+			if( keyInputStream != null) keyInputStream.close();
+		}
+		return keys;
 	}
 	private void readObject(ObjectInputStream in) throws IOException,ClassNotFoundException{
 		in.defaultReadObject();
@@ -154,8 +160,9 @@ public class EncryptedKeysWallet extends Wallet{
 	
 	@Override
 	public synchronized void addKey(ECKey key){
-		//assert !keychain.contains(key);
-		throw new UnsupportedOperationException();
+		assert !keychain.contains(key);
+		keychain.add(key);
+		saveToFile(this.file);
 	}
 	
 	public synchronized ECKey createKey() throws IOException{
@@ -175,11 +182,12 @@ public class EncryptedKeysWallet extends Wallet{
 		oos.writeObject(this);
 		oos.close();
 	}
-	public static EncryptedKeysWallet loadFromFile(File f,String key) throws IOException{
+	public static EncryptedKeysWallet loadFromFile(File f,String key) throws IOException, CryptoException{
 		return loadFromFileStream(new FileInputStream(f),key);
 	}
 	
-	public static EncryptedKeysWallet loadFromFileStream(FileInputStream f, String key) throws IOException{
+	public static 
+	public static EncryptedKeysWallet loadFromFileStream(FileInputStream f, String key) throws IOException, CryptoException{
 		ObjectInputStream ois = null;
 		EncryptedKeysWallet wallet = null;
 		try{
@@ -195,5 +203,12 @@ public class EncryptedKeysWallet extends Wallet{
 		return wallet;
 	}
 	
+	private byte[] generateSalt() throws NoSuchAlgorithmException {
+	    byte salt[] = new byte[8];
+	    SecureRandom saltGen = new SecureRandom();
+	    saltGen.nextBytes(salt);
+	    return salt;
+	}
+
 	
 }
