@@ -60,6 +60,7 @@ public class ECKey implements Serializable {
 
     private final BigInteger priv;
     private final byte[] pub;
+    private boolean encrypted;
     
     transient private byte[] pubKeyHash;
 
@@ -74,8 +75,13 @@ public class ECKey implements Serializable {
         priv = privParams.getD();
         // The public key is an encoded point on the elliptic curve. It has no meaning independent of the curve.
         pub = pubParams.getQ().getEncoded();
+        encrypted = false;
     }
-
+    
+    public ECKey(boolean encrypted){
+    	this();
+    	this.encrypted = encrypted;
+    }
     /**
      * Construct an ECKey from an ASN.1 encoded private key. These are produced by OpenSSL and stored by the BitCoin
      * reference implementation in its wallet.
@@ -212,7 +218,10 @@ public class ECKey implements Serializable {
         return ECKey.verify(data, signature, pub);
     }
 
-
+    public boolean isEncrypted(){
+    	return encrypted;
+    }
+    
     private static BigInteger extractPrivateKeyFromASN1(byte[] asn1privkey) {
         // To understand this code, see the definition of the ASN.1 format for EC private keys in the OpenSSL source
         // code in ec_asn1.c:
