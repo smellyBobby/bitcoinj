@@ -98,7 +98,7 @@ public class ECKey implements Serializable {
              //   ASN1_SIMPLE(EC_PRIVATEKEY, privateKey, ASN1_OCTET_STRING),
              //   ASN1_EXP_OPT(EC_PRIVATEKEY, parameters, ECPKPARAMETERS, 0),
              //   ASN1_EXP_OPT(EC_PRIVATEKEY, publicKey, ASN1_BIT_STRING, 1)
-             // } ASN1_SEQUENCE_END(EC_PRIVATEKEY)
+             // } ASN1_SEQUENCEECKey_END(EC_PRIVATEKEY)
              DERSequenceGenerator seq = new DERSequenceGenerator(encoder);
              seq.addObject(new DERInteger(1)); // version
              seq.addObject(new DEROctetString(priv.toByteArray()));
