@@ -30,10 +30,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.bitcoin.bouncycastle.crypto.*;
+import com.google.bitcoin.bouncycastle.crypto.digests.SHA256Digest;
 import com.google.bitcoin.bouncycastle.crypto.engines.*;
+import com.google.bitcoin.bouncycastle.crypto.generators.PKCS12ParametersGenerator;
 import com.google.bitcoin.bouncycastle.crypto.modes.*;
+import com.google.bitcoin.bouncycastle.crypto.paddings.PKCS7Padding;
 import com.google.bitcoin.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import com.google.bitcoin.bouncycastle.crypto.params.*;
+import com.google.bitcoin.bouncycastle.util.Strings;
 
 /**
  * This will enhance the current wallet by encrypting the keys upon 
@@ -51,12 +55,39 @@ public class EncryptedKeysWallet extends Wallet{
 	 */
 	private static final long serialVersionUID = -7832747169923745467L;
 	
-	File file;
-	private byte[] keyHash;
-	private byte[] keySalt;
+	static class PassHolder{
+		private byte[] passBuf;
+		private byte[] saltBuf;
+		
+		public PassHolder(byte[] pass){
+			passBuf = pass;
+		}
+		
+		public byte[] getPass(){
+			byte[] result = passBuf.clone();
+			byte[] blank = new byte[result.length];
+			System.arraycopy(blank, 0, passBuf, 0, blank.length);
+			passBuf = null;
+			return result;
+		}
+		
+		public byte[] getSalt(){
+			byte[] result = saltBuf.clone();
+			byte[] blank = new byte[result.length];
+			System.arraycopy(blank, 0, saltBuf, 0, saltBuf.length);
+			saltBuf = null;
+			return result;
+		}
+		
+		public boolean isNull(){return saltBuf==null || passBuf==null;}
+		
+	}
 	
-	transient private PaddedBufferedBlockCipher cipher;
-
+	File file;
+	transient CbcAesBlockCipher cipher;
+	transient byte[] passBuf;
+	transient PassHolder keyParams;
+	
 	private transient byte[] encryptedKeysBuffer;
 	/**
 	 * File f is needed, because when-ever a key is added it must also be stored in 
@@ -65,51 +96,11 @@ public class EncryptedKeysWallet extends Wallet{
 	 * @param params
 	 * @param key
 	 */
-	private EncryptedKeysWallet(NetworkParameters params,byte[] key,File f) {
+	private EncryptedKeysWallet(NetworkParameters params,File f) {
 		super(params);
-		initEncryption(key);
+		this.file = f;
 	}
 	
-	private void initEncryption(byte[] key){
-		cipher = new PaddedBufferedBlockCipher(
-                new CBCBlockCipher(
-                new BlowfishEngine() ) );
-	}
-	
-	private void keyDerivation(byte[] key){
-		byte[] salt = generateSalt();
-		
-	}
-	
-	
-	// Private routine that does the gritty work.
-    private byte[] callCipher( byte[] data )
-    throws CryptoException {
-        int size = cipher.getOutputSize( data.length );
-        byte[] result = new byte[size];
-        int olen = cipher.processBytes(data,0,
-                data.length,result,0);
-        olen += cipher.doFinal( result, olen );
-        
-        if( olen < size ){
-            byte[] tmp = new byte[olen];
-            System.arraycopy(result, 0, tmp, 0, olen );
-            result = tmp;
-        }
-        return result;
-    }
-    
-    private synchronized byte[] encrypt( byte[] data ,
-    		KeyParameter cipherKey)
-    throws CryptoException {
-        if(data==null||data.length==0){
-            return new byte[0];
-        }
-        
-        cipher.init(true,cipherKey);
-        return callCipher(data);
-    }
-    
     
     //Note this method will cause encrypted keys to the end
     //of the key-chain.
@@ -142,7 +133,10 @@ public class EncryptedKeysWallet extends Wallet{
 		
 		//Encrypt the list containing encrypted keys, 
 		//then serialize(store to disk).
-		if(hasEncryptedKeys==1) outputStream.writeObject(encryptKeys(encryptedKeys));
+		if(hasEncryptedKeys==1){
+			keyParametersNotNull();
+			outputStream.writeObject(encryptKeys(encryptedKeys,keyParams.getPass(),keyParams.getSalt()));
+		}
 		
 		
 		//Put encrypted keys back into the key-chain.
@@ -150,14 +144,19 @@ public class EncryptedKeysWallet extends Wallet{
 		
 	}
 	
+	private void keyParametersNotNull(){
+		if(keyParams==null || keyParams.isNull())
+			throw new EncryptedWalletException("keyParams:KeyParameters must be set before encryption/decryption.");
+	}
+	
 	//Not sure that storing a byteArray will be retrieved correctly
 	//during deserialization. If not wrap the bytes in an object, 
 	//then serialize.
-	private byte[] encryptKeys(List<EncryptedECKey> encryptedKeys,KeyParameter cipherKey) throws IOException, CryptoException{
+	private byte[] encryptKeys(List<EncryptedECKey> encryptedKeys,byte[] pass,byte[] salt) throws IOException, CryptoException{
 		
 		ByteObjectOutputStream encryptedKeysBuffer = newByteObjectOutputStream();
 		encryptedKeysBuffer.writeObject(encryptedKeys);
-		return encrypt(encryptedKeysBuffer.toByteArray(),cipherKey);
+		return cipher.encrypt(pass, salt, encryptedKeysBuffer.toByteArray());
 	}
 	
 
@@ -202,13 +201,10 @@ public class EncryptedKeysWallet extends Wallet{
 	 * @throws CryptoException
 	 * @throws IOException
 	 */
-	public synchronized void decryptKeys(KeyParameter cipherKey) throws CryptoException, IOException {
+	public synchronized void decryptKeys(byte[] pass,byte[] salt) throws CryptoException, IOException {
     	if(encryptedKeysBuffer==null)return;
-		if(cipherKey==null) throw new EncryptedWalletException("Cipher Key(Password) must be set before calling decryptKeys()");
-		cipher.init(false,cipherKey);
-        byte[] decryptedKeys = callCipher(encryptedKeysBuffer);
+        byte[] decryptedKeys = cipher.decrypt(pass, salt, encryptedKeysBuffer);
         deserializeKeys(decryptedKeys);
-        
     }
 	
 	/**
@@ -269,12 +265,12 @@ public class EncryptedKeysWallet extends Wallet{
 	 * @return 
 	 * @throws IOException
 	 */
-	public synchronized EncryptedECKey createEncryptedKey(boolean serialize,KeyParameter cipherKey) throws IOException {
-		if(cipherKey==null)throw new EncryptedWalletException("Cipher Key(Password) must be set before calling createEncryptedKey()");
+	public synchronized EncryptedECKey createEncryptedKey(boolean serialize) throws IOException {
 		EncryptedECKey key = new EncryptedECKey();
 		addKey(key,serialize);
 		return key;
 	}
+	
 	/**
 	 * Becareful, once these are removed the wallet will not be able to process 
 	 * new transactions, maybe??? . 
@@ -310,6 +306,15 @@ public class EncryptedKeysWallet extends Wallet{
 		return loadFromFileStream(new FileInputStream(f),cipherKey);
 	}
 	
+	/**
+	 * Remember to decrypt keys after calling this.
+	 * 
+	 * @param f
+	 * @param cipherKey
+	 * @return
+	 * @throws IOException
+	 * @throws CryptoException
+	 */
 	public static EncryptedKeysWallet loadFromFileStream(FileInputStream f, byte[] cipherKey) throws IOException, CryptoException{
 		ObjectInputStream ois = null;
 		EncryptedKeysWallet wallet = null;
@@ -321,16 +326,7 @@ public class EncryptedKeysWallet extends Wallet{
 		} finally {
 			if ( ois != null ) ois.close();
 		}
-		wallet.initEncryption(cipherKey);
-		wallet.decryptKeys();
 		return wallet;
-	}
-	
-	private byte[] generateSalt() throws NoSuchAlgorithmException {
-	    byte salt[] = new byte[8];
-	    SecureRandom saltGen = new SecureRandom();
-	    saltGen.nextBytes(salt);
-	    return salt;
 	}
 	
 	static ByteObjectOutputStream newByteObjectOutputStream() throws IOException{
@@ -363,11 +359,6 @@ public class EncryptedKeysWallet extends Wallet{
 		
 	}
 
-	static public void main(String args[]) throws Exception{
-		byte[] password;
-		byte[] salt;
-		Cipher cipher = Cipher.getInstance("");
-	}
 	public static class EncryptedWalletException 
 		extends RuntimeException{
 
@@ -381,4 +372,110 @@ public class EncryptedKeysWallet extends Wallet{
 		}
 	}
 	
+	//Persist the salt
+	static class CbcAesBlockCipher{
+		static final int ITERATIONS = 10000;
+		static final int AES_KEYSIZE = 256;
+		static final int IV_SIZE = 128;
+		static final int SALT_SIZE = 16;
+		static SecureRandom secureRandom = new SecureRandom();
+
+		static ParametersWithIV FAKEPARAMS;
+		static{
+			//Hopefully no one will use this as a password..
+			byte[] fakeSalt = generateSalt();
+			FAKEPARAMS = generateParameters(Strings.toUTF8ByteArray("A27e822eab14e1dc23496dac0155c7b13cc419b7a5c8305f4462f8c2e55339aebb56ffe88ff80daca0ab2662576f4e4fc"),fakeSalt);
+		}
+		
+		PaddedBufferedBlockCipher cipher;
+	
+		public CbcAesBlockCipher(){
+			CBCBlockCipher blockCipher = new CBCBlockCipher(new AESEngine());
+			cipher = new PaddedBufferedBlockCipher(
+					blockCipher,new PKCS7Padding());
+		}
+
+		
+		public void reset(){
+			//This will corrupt the memory holding 
+			//the valid key
+			
+			cipher.init(true, FAKEPARAMS);
+		}
+		
+		/**
+		 * This method will encrypt some data, and it will then 
+		 * reset the cipher to use FAKEPARAMS.
+		 * 
+		 * @param cbcAesParams
+		 * @param plaintext
+		 * @return
+		 * @throws DataLengthException
+		 * @throws IllegalStateException
+		 * @throws InvalidCipherTextException
+		 */
+		public synchronized byte[] encrypt(byte[] pass,byte[] salt,byte[] plainData) throws DataLengthException, IllegalStateException, InvalidCipherTextException{
+			ParametersWithIV cbcAesParams = generateParameters(pass,salt);
+			cipher.init(true, cbcAesParams);
+			byte[] result = invokeCipher(plainData);
+			reset();
+			return result;
+		}
+		
+		/**
+		 * This method will decrypt some data, and it will then reset
+		 * the cipher to use FAKEPARAMS.
+		 * 
+		 * @param cbcAesParams
+		 * @param encryptedData
+		 * @return
+		 * @throws DataLengthException
+		 * @throws IllegalStateException
+		 * @throws InvalidCipherTextException
+		 */
+		public synchronized byte[] decrypt(byte[] pass,byte[] salt, byte[] encryptedData) throws DataLengthException, IllegalStateException, InvalidCipherTextException{
+			ParametersWithIV cbcAesParams = generateParameters(pass,salt);
+			cipher.init(false,cbcAesParams);
+			byte[] result = invokeCipher(encryptedData);
+			reset();
+			return result;
+		}
+		
+		private byte[] invokeCipher(byte[] data) throws DataLengthException, IllegalStateException, InvalidCipherTextException{
+			int outSize = cipher.getOutputSize(data.length);
+			byte[] outputBuf = new byte[outSize];
+			int outputLength = cipher.processBytes(
+					data, 0, data.length, outputBuf, 0);
+			outputLength += cipher.doFinal(outputBuf, outputLength);
+			
+			if( outputLength < outSize ){
+				byte[] temp = new byte[outputLength];
+				System.arraycopy(outputBuf,0,temp,0,outputLength);
+				outputBuf = temp;
+			}
+			return outputBuf;
+		}
+		
+		/**
+		 * Password will undergo conversion using UTF-8.
+		 * 
+		 * @param password - encryption based password.
+		 * @param salt - cryptographic salt parameter.
+		 */
+		static ParametersWithIV generateParameters(byte[] password, byte[] salt){
+			PKCS12ParametersGenerator pGen = 
+				new PKCS12ParametersGenerator(new SHA256Digest());
+			pGen.init(password, salt, ITERATIONS);
+			//Specify AES-256 and use an 128-bit long IV.
+			return (ParametersWithIV)
+				pGen.generateDerivedParameters(AES_KEYSIZE, IV_SIZE);
+		}
+		
+		static byte[] generateSalt(){
+			byte[] salt = new byte[SALT_SIZE];
+			secureRandom.nextBytes(salt);
+			return salt;
+		}
+		
+	}
 }
