@@ -2,19 +2,12 @@ package com.google.bitcoin.core;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertThat;
-
 import java.io.File;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.bitcoin.bouncycastle.crypto.CryptoException;
-import com.google.bitcoin.bouncycastle.crypto.params.ParametersWithIV;
-import com.google.bitcoin.bouncycastle.util.Arrays;
 import com.google.bitcoin.core.EncryptedWallet.CbcAesBlockCipher;
 import com.google.bitcoin.core.EncryptedWallet.PasswordHash;
 
@@ -263,7 +256,7 @@ public class EncryptedWalletTest {
 		byte[] buf = cipher1.encrypt(password, salt, plainData);
 		
 		cipher1 = new CbcAesBlockCipher();
-		byte[] result = cipher1.decrypt(password, salt, buf);
+		cipher1.decrypt(password, salt, buf);
 	}
 	
 	@Test

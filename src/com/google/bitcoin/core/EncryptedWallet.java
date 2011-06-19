@@ -27,10 +27,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,6 +46,9 @@ import com.google.bitcoin.bouncycastle.util.Strings;
  * This will enhance the current wallet by encrypting specified keys. The 
  * current implementation allows individual keys to be either encrypted or 
  * not. 
+ * 
+ * Encryption is done with AES-256-CBC, but key-derivation is done with SHA-256,
+ * instead of AES256 as is done in the c++ version. 
  * 
  * This does not implement any password-handling 'protocols'. This means when 
  * someone decrypts a wallet, there is no simple way of checking if the 
