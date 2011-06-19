@@ -60,8 +60,8 @@ public class ECKey implements Serializable {
 
     private final BigInteger priv;
     private final byte[] pub;
+    private boolean encrypted;
     
-    protected boolean encrypted;
     transient private byte[] pubKeyHash;
 
     /** Generates an entirely new keypair. */
@@ -77,7 +77,11 @@ public class ECKey implements Serializable {
         pub = pubParams.getQ().getEncoded();
         encrypted = false;
     }
-
+    
+    public ECKey(boolean encrypted){
+    	this();
+    	this.encrypted = encrypted;
+    }
     /**
      * Construct an ECKey from an ASN.1 encoded private key. These are produced by OpenSSL and stored by the BitCoin
      * reference implementation in its wallet.
