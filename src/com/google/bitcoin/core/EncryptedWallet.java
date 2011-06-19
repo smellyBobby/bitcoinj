@@ -46,12 +46,26 @@ import com.google.bitcoin.bouncycastle.crypto.params.*;
 import com.google.bitcoin.bouncycastle.util.Strings;
 
 /**
- * This will enhance the current wallet by encrypting the keys upon 
+ * This will enhance the current wallet by encrypting specified keys. The 
+ * current implementation allows individual keys to be either encrypted or 
+ * not. 
+ * 
+ * This does not implement any password-handling 'protocols'. This means when 
+ * someone decrypts a wallet, there is no simple way of checking if the 
+ * password matches the wallet. Also the password used during encryption
+ * is expected to be valid(e.g who-ever owns the wallet entered the password
+ * twice). The PasswordHash class is there to help implement custom password
+ * protocols.
  *
  * Should consider implementing method serializeEncryptedKeysOnly,
- * that is optimized at writing the keys to disk only and not transactions.
+ * that is optimised at writing the keys to disk only and not transactions.
  *
- * Should consider changing the visibilty of keychain, so 
+ * Should consider changing the visibility of keychain to protected.
+ * 
+ * Password Notes:
+ *   - When converting password Strings to byte[] passwords make sure 
+ *   that the UTF-8 CharSet is used. 
+ *   
  */
 public class EncryptedWallet extends Wallet{
 	
@@ -88,18 +102,18 @@ public class EncryptedWallet extends Wallet{
 	}
 	
 	File file;
-	public byte[] salt;
+	//Cryptographic salt, MUST be persisted.
+	byte[] salt;
 	
 	transient CbcAesBlockCipher cipher;
 	transient PassHolder keyParams;
 	transient List<ECKey> encryptedKeys;
-	private transient byte[] encryptedKeysBuffer;
+	transient byte[] encryptedKeysBuffer;
+	
 	/**
-	 * File f is needed, because when-ever a key is added it must also be stored in 
-	 * the file incase, the program collapses. Therefore override Wallet.addKey.
 	 * 
-	 * @param params
-	 * @param key
+	 * @param params 
+	 * @param f - The file where the wallet will be serialized to.
 	 */
 	private EncryptedWallet(NetworkParameters params,File f) {
 		super(params);
@@ -115,13 +129,12 @@ public class EncryptedWallet extends Wallet{
     		//Is this over-restrictive? 
     		//The intention is that there should not be any un-necessary
     		//risk of exposing the the users details to a heap-dump.
-    		
     	}
     	
     	if(keyParams!=null)keyParams.nullify();
     	keyParams = new PassHolder(pass);
     }
-    //Note this method will cause encrypted keys to the end
+    //Note this method will force encrypted keys to the end
     //of the key-chain.
 	private void writeObject(ObjectOutputStream outputStream) throws IOException, CryptoException {
 		assert removeEncryptedKeys().size() == 0 : "encrypted keys must be removed from keychain before calling this serialization method";
@@ -133,10 +146,6 @@ public class EncryptedWallet extends Wallet{
 		//Write to the ObjectStream if there is any
 		//encrypted keys, this is needed for correct
 		//deserialisation.
-		//WARNING: This could become a potential bug
-		//if a malicious agent corrupts this number
-		//when serialized to disk, then this will break
-		//deserialization.
 		int hasEncryptedKeys = 0;
 		if(encryptedKeys.size()>0)hasEncryptedKeys=1;
 		
@@ -157,18 +166,12 @@ public class EncryptedWallet extends Wallet{
 			throw new EncryptedWalletException("keyParams:KeyParameters must be set before encryption/decryption.");
 	}
 	
-	//Not sure that storing a byteArray will be retrieved correctly
-	//during deserialization. If not wrap the bytes in an object, 
-	//then serialize.
 	private byte[] encryptKeys(List<ECKey> encryptedKeys,byte[] pass) throws IOException, CryptoException{
-		
 		ByteObjectOutputStream encryptedKeysBuffer = newByteObjectOutputStream();
 		encryptedKeysBuffer.writeObject(encryptedKeys);
 		return cipher.encrypt(pass, salt, encryptedKeysBuffer.toByteArray());
-
 	}
 	
-
 	/**
 	 * This will be called first during deserialization. After this 
 	 * is invoked, decryptedKeys should be called.
@@ -177,7 +180,6 @@ public class EncryptedWallet extends Wallet{
 	 * @throws ClassNotFoundException
 	 */
 	private void readObject(ObjectInputStream in) throws IOException,ClassNotFoundException{
-		println("keychain: "+keychain);
 		in.defaultReadObject();
 		try {
 			encryptedKeysBuffer = null;
@@ -200,12 +202,14 @@ public class EncryptedWallet extends Wallet{
 	}
 	
 	/**
-	 * Make sure that setCipherKey(..) has been called before
-	 * invoking this.
 	 * 
 	 * Currently there will be only one password for the whole 
 	 * wallet, maybe in the future, it will be possible to have
-	 * passwords assigned to individual keys.
+	 * passwords assigned to individual keys. If a CryptoException 
+	 * is thrown then this means that the wrong password was used,
+	 * or that the serialization/deserialization of the object is 
+	 * corrupted, affecting EncryptedWallet.salt .
+	 * 
 	 * @throws CryptoException
 	 * @throws IOException
 	 */
@@ -227,7 +231,10 @@ public class EncryptedWallet extends Wallet{
 		List<ECKey> keys = null;
 		try{
 			keys = (List<ECKey>) keyInputBuffer.readObject();
-			keychain.addAll(keys);
+			for(ECKey key:keys){
+				if(keychain.contains(key))continue;
+				keychain.add(key);
+			}
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -237,11 +244,11 @@ public class EncryptedWallet extends Wallet{
 	
 	
 	/**
-	 * This will create a key and will serialize the wallet to disk according
-	 * to the serialize parameter.
+	 * This will create a key. The key will be encrypted depending on the 
+	 * encrypted parameter.
 	 * 
-	 * @param serialize - Specifies if the wallet should be serialized.
-	 * @return - A new un-encrypted ECKey instance.
+	 * @param encrypted - Specifies if the key should be encrypted.
+	 * @return -
 	 * @throws IOException
 	 */
 	public synchronized ECKey createKey(boolean encrypted) throws IOException{
@@ -251,44 +258,35 @@ public class EncryptedWallet extends Wallet{
 	}
 	
 	/**
-	 * Becareful, once these are removed the wallet will not be able to process 
-	 * new transactions, maybe??? . 
-	 * 
-	 * This method can be used to remove encrypted keys from the key-chain
-	 * thereby reducing the risk of a malicious agent deducing the private
-	 * keys from a heap dump. Maybe??
 	 * 
 	 * This method is intended to be used in tandem with decryptKeys(), which is 
 	 * responsible for restoring encrypted keys. Whenever an encrypted key is need
 	 * the caller will first decrypt all encrypted keys, use the encrypted keys and then
-	 * remove all encrypted keys, leaving the only trace of encrypted keys in 
+	 * remove all encrypted keys from the heap, leaving the only trace of encrypted keys in 
 	 * encryptedKeysBuffer and the List<ECKey> that is returned. The caller should
 	 * handle this appropriately to remove it from the heap.
 	 * 
-	 * However for the sake of completeness, then cipherKey should also be
-	 * removed and only stored when either calling decryptKeys() or calling
-	 * createEncryptedKey(serialize=true).
+	 * Be careful, once these are removed the wallet will not be able to process 
+	 * new transactions, maybe??? .
 	 */
 	public synchronized List<ECKey> removeEncryptedKeys(){
 		ArrayList<ECKey> encryptedKeys = new ArrayList<ECKey>();
-		
 		for(ECKey key:keychain){
 			if(key.isEncrypted()){
 				encryptedKeys.add(key);
 			}
 		}
-		
 		keychain.removeAll(encryptedKeys);
-		
 		return encryptedKeys;
 	}
 	
 	/**
-	 * The result of this will indicate if the caller should
-	 * have the password and salt before calling any method that
-	 * encrypts and serializes the wallet.
+	 * The result of this method will indicate there are 
+	 * keys that could be decrypted. Call this after loading the 
+	 * wallet from a file to decide if to query the wallet owner 
+	 * for a password and decrypt encrypted keys.
 	 * 
-	 * @return - If the wallet contains encrypted keys.
+	 * @return - If the wallet is storing encrypted keys in a buffer.
 	 */
 	public boolean hasEncryptedKeys(){
 		for(ECKey key:keychain){
@@ -408,12 +406,8 @@ public class EncryptedWallet extends Wallet{
 		try{
 			ois = new ObjectInputStream(f);
 			wallet = (EncryptedWallet) ois.readObject();
-			println("red wallet");
 			wallet.cipher = new CbcAesBlockCipher();
 		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		} catch (IOException e) {
-			e.printStackTrace();
 			throw new RuntimeException(e);
 		} finally {
 			if ( ois != null ) ois.close();
@@ -551,7 +545,6 @@ public class EncryptedWallet extends Wallet{
 		}
 		
 		/**
-		 * Password will undergo conversion using UTF-8.
 		 * 
 		 * @param password - encryption based password.
 		 * @param salt - cryptographic salt parameter.
@@ -601,7 +594,4 @@ public class EncryptedWallet extends Wallet{
 		}
 	}
 	
-	static void println(Object ob){
-		System.out.println(ob);
-	}
 }
