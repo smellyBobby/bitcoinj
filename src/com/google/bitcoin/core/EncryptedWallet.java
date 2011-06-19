@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
@@ -53,7 +54,6 @@ import com.google.bitcoin.bouncycastle.util.Strings;
  * Should consider changing the visibilty of keychain, so 
  */
 public class EncryptedWallet extends Wallet{
-	static final int HASH_ITERATIONS = 1000;
 	
 	/**
 	 * 
@@ -61,16 +61,15 @@ public class EncryptedWallet extends Wallet{
 	private static final long serialVersionUID = -7832747169923745467L;
 	
 	/**
-	 * This is intented to be a class with single use 'get' methods.
-	 * Thus reducing the amount of
-	 * time that password is in the heap.
+	 * This is intended to be a class with single use 'getPass' methods,
+	 * thus reducing the amount of time that password is in the heap.
 	 *
 	 */
 	static class PassHolder{
 		private byte[] passBuf;
 		
 		public PassHolder(byte[] pass){
-			passBuf = pass;
+			passBuf = pass.clone();
 		}
 		
 		public byte[] getPass(){
@@ -89,11 +88,11 @@ public class EncryptedWallet extends Wallet{
 	}
 	
 	File file;
-	private final byte[] salt;
+	public byte[] salt;
 	
 	transient CbcAesBlockCipher cipher;
 	transient PassHolder keyParams;
-	
+	transient List<ECKey> encryptedKeys;
 	private transient byte[] encryptedKeysBuffer;
 	/**
 	 * File f is needed, because when-ever a key is added it must also be stored in 
@@ -106,6 +105,7 @@ public class EncryptedWallet extends Wallet{
 		super(params);
 		this.file = f;
 		this.salt = CbcAesBlockCipher.generateSalt();
+		this.cipher = new CbcAesBlockCipher();
 	}
 	
 	
@@ -124,15 +124,7 @@ public class EncryptedWallet extends Wallet{
     //Note this method will cause encrypted keys to the end
     //of the key-chain.
 	private void writeObject(ObjectOutputStream outputStream) throws IOException, CryptoException {
-		
-		List<ECKey> encryptedKeys = new ArrayList<ECKey>();
-		
-		//Move encrypted keys into a separate list.
-		for(ECKey ecKey:keychain){
-			if(ecKey.isEncrypted())
-				encryptedKeys.add(ecKey);
-			keychain.remove(ecKey);
-		}
+		assert removeEncryptedKeys().size() == 0 : "encrypted keys must be removed from keychain before calling this serialization method";
 		//Now that keys have encrypted keys have been
 		//removed, it is safe to serialize remaining keys
 		//to disk.
@@ -154,12 +146,9 @@ public class EncryptedWallet extends Wallet{
 		//then serialize(store to disk).
 		if(hasEncryptedKeys==1){
 			keyParametersNotNull();
-			outputStream.writeObject(encryptKeys(encryptedKeys,keyParams.getPass()));
+			encryptedKeysBuffer = encryptKeys(encryptedKeys,keyParams.getPass());
+			outputStream.writeObject(encryptedKeysBuffer);
 		}
-		
-		
-		//Put encrypted keys back into the key-chain.
-		keychain.addAll(encryptedKeys);
 		
 	}
 	
@@ -176,6 +165,7 @@ public class EncryptedWallet extends Wallet{
 		ByteObjectOutputStream encryptedKeysBuffer = newByteObjectOutputStream();
 		encryptedKeysBuffer.writeObject(encryptedKeys);
 		return cipher.encrypt(pass, salt, encryptedKeysBuffer.toByteArray());
+
 	}
 	
 
@@ -187,6 +177,7 @@ public class EncryptedWallet extends Wallet{
 	 * @throws ClassNotFoundException
 	 */
 	private void readObject(ObjectInputStream in) throws IOException,ClassNotFoundException{
+		println("keychain: "+keychain);
 		in.defaultReadObject();
 		try {
 			encryptedKeysBuffer = null;
@@ -196,8 +187,6 @@ public class EncryptedWallet extends Wallet{
 			}
 		} catch (ClassNotFoundException e) {
 	    	throw new RuntimeException(e);
-	    } finally {
-	    	if (in!=null) in.close();
 	    }
 	}
 	
@@ -222,10 +211,10 @@ public class EncryptedWallet extends Wallet{
 	 */
 	public synchronized void decryptKeys(byte[] pass) throws CryptoException, IOException {
     	if(encryptedKeysBuffer==null)return; //Should this be an exception?
-        byte[] decryptedKeys = cipher.decrypt(pass,salt, encryptedKeysBuffer);
+
+    	byte[] decryptedKeys = cipher.decrypt(pass,salt, encryptedKeysBuffer);
         deserializeKeys(decryptedKeys);
     }
-	
 	/**
 	 * This deserializes encrypted keys and adds them to the 
 	 * key-chain.
@@ -286,9 +275,10 @@ public class EncryptedWallet extends Wallet{
 		for(ECKey key:keychain){
 			if(key.isEncrypted()){
 				encryptedKeys.add(key);
-				keychain.remove(key);
 			}
 		}
+		
+		keychain.removeAll(encryptedKeys);
 		
 		return encryptedKeys;
 	}
@@ -335,8 +325,8 @@ public class EncryptedWallet extends Wallet{
 	 * This will serialize the wallet to the specified file. The wallet 
 	 * must not contain any encrypted keys.
 	 */
-	public synchronized void saveToFile(File f) throws IOException{
-		saveToFileStream(new FileOutputStream(f));
+	public void saveToFile(File f) throws IOException{
+		saveToFileStream((OutputStream)new FileOutputStream(f));
 	}
 	
 	/**
@@ -352,7 +342,7 @@ public class EncryptedWallet extends Wallet{
 	 * @param salt - Cryptographic salt.
 	 * @throws IOException
 	 */
-	public synchronized void saveToFile(File f, byte[] pass) throws IOException{
+	public void saveToFile(File f, byte[] pass) throws IOException{
 		saveToFileStream(new FileOutputStream(f),pass);
 	}
 	
@@ -369,7 +359,7 @@ public class EncryptedWallet extends Wallet{
 	 * @param salt - Cryptographic salt.
 	 * @throws IOException
 	 */
-	public synchronized void saveToFileStream(OutputStream f, byte[] pass) throws IOException{
+	public void saveToFileStream(OutputStream f, byte[] pass) throws IOException{
 		if(!(pass==null))setKeyParameters(pass);
 		saveToFileStream(f);
 	}
@@ -381,9 +371,14 @@ public class EncryptedWallet extends Wallet{
 	 *  @param f - Destination wallet OutputStream.
 	 */
 	public synchronized void saveToFileStream(OutputStream f) throws IOException {
+		//Remove encrypted keys from key-chain.
+		encryptedKeys = removeEncryptedKeys();
 		ObjectOutputStream oos = new ObjectOutputStream(f);
 		oos.writeObject(this);
 		oos.close();
+		//Put encrypted keys back into key-chain.
+		keychain.addAll(encryptedKeys);
+		encryptedKeys = null;
 	}
 	
 	/**
@@ -413,7 +408,12 @@ public class EncryptedWallet extends Wallet{
 		try{
 			ois = new ObjectInputStream(f);
 			wallet = (EncryptedWallet) ois.readObject();
+			println("red wallet");
+			wallet.cipher = new CbcAesBlockCipher();
 		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		} catch (IOException e) {
+			e.printStackTrace();
 			throw new RuntimeException(e);
 		} finally {
 			if ( ois != null ) ois.close();
@@ -490,12 +490,10 @@ public class EncryptedWallet extends Wallet{
 			cipher = new PaddedBufferedBlockCipher(
 					blockCipher,new PKCS7Padding());
 		}
-
 		
 		public void reset(){
 			//This will corrupt the memory holding 
 			//the valid key
-			
 			cipher.init(true, FAKEPARAMS);
 		}
 		
@@ -572,35 +570,38 @@ public class EncryptedWallet extends Wallet{
 			secureRandom.nextBytes(salt);
 			return salt;
 		}
-		
-		/**
-		 * This should be used to control access to an EncryptedWallet.
-		 *
-		 */
-		public static class PasswordHash{
-			byte[] salt;
-			byte[] derivedKey;
-			public PasswordHash(byte[] pass){
-				salt = generateSalt();
-				derivedKey = genDerivedKey(salt,pass);
-			}
-			
-			private byte[] genDerivedKey(byte[] salt,byte[] pass){
-				ParametersWithIV params = 
-					generateParameters(pass,salt);
-				KeyParameter kp = (KeyParameter) params.getParameters();
-				return kp.getKey();
-			}
-			
-			public boolean passwordMatch(byte[] pass){
-				byte[] passHash = genDerivedKey(salt,pass);
-				return Arrays.equals(passHash, derivedKey);
-			}
-			
-			public String toString(){
-				return bytesToHexString(derivedKey);
-			}
+	}
+	
+	/**
+	 * This should be used to control access to EncryptedWallet.
+	 *
+	 */
+	public static class PasswordHash{
+		byte[] salt;
+		byte[] derivedKey;
+		public PasswordHash(byte[] pass){
+			salt = CbcAesBlockCipher.generateSalt();
+			derivedKey = genDerivedKey(salt,pass);
 		}
 		
+		private byte[] genDerivedKey(byte[] salt,byte[] pass){
+			ParametersWithIV params = 
+				CbcAesBlockCipher.generateParameters(pass,salt);
+			KeyParameter kp = (KeyParameter) params.getParameters();
+			return kp.getKey();
+		}
+		
+		public boolean passwordMatch(byte[] pass){
+			byte[] passHash = genDerivedKey(salt,pass);
+			return Arrays.equals(passHash, derivedKey);
+		}
+		
+		public String toString(){
+			return bytesToHexString(derivedKey);
+		}
+	}
+	
+	static void println(Object ob){
+		System.out.println(ob);
 	}
 }
