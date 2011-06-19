@@ -869,4 +869,11 @@ public class Wallet implements Serializable {
     public Collection<Transaction> getPendingTransactions() {
         return Collections.unmodifiableCollection(pending.values());
     }
+    
+    public ECKey createKey(){
+    	ECKey key = new ECKey();
+    	assert !keychain.contains(key);
+    	keychain.add(key);
+    	return key;
+    }
 }
