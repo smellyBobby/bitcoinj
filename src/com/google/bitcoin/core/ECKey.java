@@ -60,6 +60,7 @@ public class ECKey implements Serializable {
 
     private final BigInteger priv;
     private final byte[] pub;
+    private boolean encrypted;
     
     transient private byte[] pubKeyHash;
 
@@ -74,8 +75,13 @@ public class ECKey implements Serializable {
         priv = privParams.getD();
         // The public key is an encoded point on the elliptic curve. It has no meaning independent of the curve.
         pub = pubParams.getQ().getEncoded();
+        encrypted = false;
     }
-
+    
+    public ECKey(boolean encrypted){
+    	this();
+    	this.encrypted = encrypted;
+    }
     /**
      * Construct an ECKey from an ASN.1 encoded private key. These are produced by OpenSSL and stored by the BitCoin
      * reference implementation in its wallet.
@@ -98,7 +104,7 @@ public class ECKey implements Serializable {
              //   ASN1_SIMPLE(EC_PRIVATEKEY, privateKey, ASN1_OCTET_STRING),
              //   ASN1_EXP_OPT(EC_PRIVATEKEY, parameters, ECPKPARAMETERS, 0),
              //   ASN1_EXP_OPT(EC_PRIVATEKEY, publicKey, ASN1_BIT_STRING, 1)
-             // } ASN1_SEQUENCE_END(EC_PRIVATEKEY)
+             // } ASN1_SEQUENCEECKey_END(EC_PRIVATEKEY)
              DERSequenceGenerator seq = new DERSequenceGenerator(encoder);
              seq.addObject(new DERInteger(1)); // version
              seq.addObject(new DEROctetString(priv.toByteArray()));
@@ -212,7 +218,10 @@ public class ECKey implements Serializable {
         return ECKey.verify(data, signature, pub);
     }
 
-
+    public boolean isEncrypted(){
+    	return encrypted;
+    }
+    
     private static BigInteger extractPrivateKeyFromASN1(byte[] asn1privkey) {
         // To understand this code, see the definition of the ASN.1 format for EC private keys in the OpenSSL source
         // code in ec_asn1.c:
